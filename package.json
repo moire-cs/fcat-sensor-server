@@ -1,0 +1,24 @@
+{
+  "name": "fcat-sensor-server",
+  "version": "1.0.0",
+  "description": "server for fcat sensor project",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "ts-node index.ts",
+    "dev": "concurrently \"npm run start\" \"npm run client\"",
+    "client": "cd ../fcat-sensor-client && npm start",
+    "serve": "IS_PROD=true ts-node index.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sequelize": "^6.32.1"
+  }
+}
