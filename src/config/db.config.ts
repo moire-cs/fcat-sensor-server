@@ -2,7 +2,7 @@ export const dbConfig = {
     HOST: 'localhost',
     USER: 'root',
     PASSWORD: '123456',
-    DB: 'testdb',
+    DB: 'moirelocal',
     dialect: 'mysql',
     pool: {
         max: 5,
