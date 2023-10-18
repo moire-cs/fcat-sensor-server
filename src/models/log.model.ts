@@ -1,7 +1,12 @@
 import { ModelAttributes } from 'sequelize';
 import { DataTypes } from 'sequelize';
+import { messagesDB } from './db.index';
 
 export const logModel:ModelAttributes = {
+    id: {
+        type: DataTypes.STRING,
+        primaryKey: true,
+    },
     time: {
         type: DataTypes.DATE(3),
     },
@@ -12,6 +17,10 @@ export const logModel:ModelAttributes = {
         type: DataTypes.STRING,
     },
     messageID: {
-        type: DataTypes.STRING, //string, foreign key to message
+        type: DataTypes.STRING,
+        references: {
+            model: messagesDB,
+            key: 'id',
+        },
     },
 };

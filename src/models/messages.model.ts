@@ -1,12 +1,25 @@
 import { ModelAttributes } from 'sequelize';
 import { DataTypes } from 'sequelize';
+import { nodesDB, plotsDB } from './db.index';
 
 export const messagesModel:ModelAttributes = {
-    messageID: {
+    id: {
         type: DataTypes.STRING,
+        primaryKey: true,
     },
-    deviceID: {
-        type: DataTypes.STRING, //foreign key
+    nodeID: {
+        type: DataTypes.STRING,
+        references: {
+            model: nodesDB,
+            key: 'id',
+        },
+    },
+    plotID:{
+        type: DataTypes.STRING,
+        references: {
+            model: plotsDB,
+            key: 'id',
+        },
     },
     time: {
         type: DataTypes.DATE(3),
@@ -23,9 +36,7 @@ export const messagesModel:ModelAttributes = {
     temperature: {
         type: DataTypes.DOUBLE,
     },
-    //sunlight: {
-    //  type: Sequelize.DOUBLE
-    //}
+    sunlight: {
+        type: DataTypes.DOUBLE,
+    },
 };
-// Sequelize is adding createdAt, modifiedAt
-// Sequelize is adding createdAt, modifiedAt
