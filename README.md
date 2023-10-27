@@ -1,3 +1,6 @@
+# configuring database login
+To configure the database login, add a file "db.config.ts" to the "src/config" directory with the following (Edited for your mysql database)
+```ts
 export const dbConfig = {
     HOST: 'localhost',
     USER: 'root',
@@ -11,3 +14,4 @@ export const dbConfig = {
         idle: 10000,
     },
 };
+```

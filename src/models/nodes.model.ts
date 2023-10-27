@@ -1,21 +1,20 @@
 import { ModelAttributes } from 'sequelize';
 import { DataTypes } from 'sequelize';
+import { plotsDB } from './db.index';
 
 export const nodesModel:ModelAttributes = {
-    deviceID: {
+    id: {
         type: DataTypes.STRING,
+        primaryKey: true,
     },
-    plot: {
+    plotID: {
         type: DataTypes.STRING,
-    },
-    latitude: {
-        type: DataTypes.DOUBLE,
-    },
-    longitude: {
-        type: DataTypes.DOUBLE,
+        references: {
+            model: plotsDB,
+            key: 'id',
+        },
     },
     lastSeen: {
         type: DataTypes.DATE(3),
     },
 };
-// Sequelize is adding createdAt, modifiedAt

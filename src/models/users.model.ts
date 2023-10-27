@@ -2,13 +2,14 @@ import { ModelAttributes } from 'sequelize';
 import { DataTypes } from 'sequelize';
 
 export const usersModel:ModelAttributes = {
+    id: {
+        type: DataTypes.STRING,
+        primaryKey: true,
+    },
     name: {
         type: DataTypes.STRING,
     },
     password: {
-        type: DataTypes.STRING,
-    },
-    userID: {
         type: DataTypes.STRING,
     },
     admin: {
@@ -18,7 +19,6 @@ export const usersModel:ModelAttributes = {
         type: DataTypes.STRING,
     },
     prefs: {
-        type: DataTypes.STRING, //not sure how to make this an array
+        type: DataTypes.STRING,
     },
 };
-// Sequelize is adding createdAt, modifiedAt
