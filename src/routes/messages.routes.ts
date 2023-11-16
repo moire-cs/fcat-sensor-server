@@ -9,5 +9,6 @@ export const useMessageRoutes = (router:Express) => {
     ///router.post create
     ///router.patch update
     ///router.delete delete
+
 };
 
