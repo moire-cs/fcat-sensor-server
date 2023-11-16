@@ -1,6 +1,5 @@
 import { ModelAttributes } from 'sequelize';
 import { DataTypes } from 'sequelize';
-import { messagesDB } from './db.index';
 
 export const logModel:ModelAttributes = {
     id: {
@@ -16,10 +15,10 @@ export const logModel:ModelAttributes = {
     type: {
         type: DataTypes.STRING,
     },
-    messageID: {
+    referenceID: { //how to make this point to multiple dbs potentially?
         type: DataTypes.STRING,
         references: {
-            model: messagesDB,
+            model: 'messages',
             key: 'id',
         },
     },

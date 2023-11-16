@@ -18,7 +18,7 @@ export const usersModel:ModelAttributes = {
     email: {
         type: DataTypes.STRING,
     },
-    prefs: {
+    preferences: {
         type: DataTypes.STRING,
     },
 };

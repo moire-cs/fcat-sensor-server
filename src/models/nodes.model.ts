@@ -1,6 +1,5 @@
 import { ModelAttributes } from 'sequelize';
 import { DataTypes } from 'sequelize';
-import { plotsDB } from './db.index';
 
 export const nodesModel:ModelAttributes = {
     id: {
@@ -10,7 +9,7 @@ export const nodesModel:ModelAttributes = {
     plotID: {
         type: DataTypes.STRING,
         references: {
-            model: plotsDB,
+            model: 'plots',
             key: 'id',
         },
     },

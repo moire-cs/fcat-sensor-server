@@ -1,6 +1,5 @@
 import { ModelAttributes } from 'sequelize';
 import { DataTypes } from 'sequelize';
-import { nodesDB, plotsDB } from './db.index';
 
 export const messagesModel:ModelAttributes = {
     id: {
@@ -10,14 +9,14 @@ export const messagesModel:ModelAttributes = {
     nodeID: {
         type: DataTypes.STRING,
         references: {
-            model: nodesDB,
+            model: 'nodes',
             key: 'id',
         },
     },
     plotID:{
         type: DataTypes.STRING,
         references: {
-            model: plotsDB,
+            model: 'plots',
             key: 'id',
         },
     },
@@ -27,7 +26,7 @@ export const messagesModel:ModelAttributes = {
     battery: {
         type: DataTypes.DOUBLE,
     },
-    soilCondition: {
+    soilConductivity: {
         type: DataTypes.DOUBLE,
     },
     humidity: {

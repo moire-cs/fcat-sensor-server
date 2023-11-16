@@ -1,16 +1,15 @@
 import { ModelAttributes } from 'sequelize';
 import { DataTypes } from 'sequelize';
-import { nodesDB } from './db.index';
 
 export const plotsModel:ModelAttributes = {
     id: {
         type: DataTypes.STRING,
         primaryKey: true,
     },
-    currentNode: {
+    nodeID: {
         type: DataTypes.STRING,
         references: {
-            model: nodesDB,
+            model: 'nodes',
             key: 'id',
         },
     },
