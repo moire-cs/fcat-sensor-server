@@ -15,7 +15,7 @@ export const getLastMessages: RequestHandler = async (req, res, errFunc) => {
         const numMsgs = (req.params.numMsgs as unknown as number) || 10; //cast to number, or default to 10
         const messages = await messagesDB.findAll({
             limit: numMsgs,
-            order: [['id', 'DESC']],
+            order: [['time', 'DESC']],
         });
         res.status(200).json(messages);
     } catch (error) {
