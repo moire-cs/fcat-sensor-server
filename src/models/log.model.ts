@@ -5,6 +5,7 @@ export const logModel:ModelAttributes = {
     id: {
         type: DataTypes.STRING,
         primaryKey: true,
+        defaultValue: DataTypes.UUIDV4,
     },
     time: {
         type: DataTypes.DATE(3),

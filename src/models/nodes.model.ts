@@ -5,6 +5,7 @@ export const nodesModel:ModelAttributes = {
     id: {
         type: DataTypes.STRING,
         primaryKey: true,
+        defaultValue: DataTypes.UUIDV4,
     },
     plotID: {
         type: DataTypes.STRING,
