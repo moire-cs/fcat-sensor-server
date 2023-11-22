@@ -3,6 +3,7 @@ import cors from 'cors';
 import { sequelize } from './src/models/db.index';
 import createHttpError, { isHttpError } from 'http-errors';
 import { useMessageRoutes } from './src/routes/messages.routes';
+import { useUserRoutes } from './src/routes/users.routes';
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use(express.urlencoded({ extended: true }));
 //     res.status(statusCode).json({ error: errorMessage });
 // });
 useMessageRoutes(app);
+useUserRoutes(app);
 
 const PORT = process.env.PORT || 8080;
 

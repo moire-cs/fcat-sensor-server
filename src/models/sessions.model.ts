@@ -7,9 +7,7 @@ export const sessionsModel:ModelAttributes = {
         defaultValue: DataTypes.UUIDV4,
     },
     expires: {
-        type: DataTypes.DATE,
-        defaultValue: Date.now() + EXPIRATION_TIME,
-    },
+        type: DataTypes.DATE    },
     token: {
         type: DataTypes.STRING,
     },
