@@ -5,6 +5,7 @@ export const usersModel:ModelAttributes = {
     id: {
         type: DataTypes.STRING,
         primaryKey: true,
+        defaultValue: DataTypes.UUIDV4,
     },
     name: {
         type: DataTypes.STRING,
