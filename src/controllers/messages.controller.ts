@@ -10,6 +10,18 @@ export const getMessages: RequestHandler = async (req, res, errFunc) => {
         errFunc(error);
     }
 };
+export const getLastMessages: RequestHandler = async (req, res, errFunc) => {
+    try {
+        const numMsgs = (req.params.numMsgs as unknown as number) || 10; //cast to number, or default to 10
+        const messages = await messagesDB.findAll({
+            limit: numMsgs,
+            order: [['time', 'DESC']],
+        });
+        res.status(200).json(messages);
+    } catch (error) {
+        errFunc(error);
+    }
+};
 
 export const getMessage: RequestHandler = async (req, res, errFunc) => {
     const id = req.params.id;

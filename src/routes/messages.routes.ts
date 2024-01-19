@@ -11,4 +11,5 @@ export const useMessageRoutes = (router:Express) => {
     router.delete(URL_BASE + '/deleteMessage/:id', messagesController.deleteMessage);
     router.get(URL_BASE + '/:nodeID', messagesController.findMessagesByNodeID);
     router.get(URL_BASE + '/:plotID', messagesController.findMessagesByPlotID);
+    router.get(URL_BASE + '/last/:numMsgs?', messagesController.getLastMessages);
 };
