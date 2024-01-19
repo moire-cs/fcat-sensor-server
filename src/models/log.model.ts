@@ -15,10 +15,31 @@ export const logModel:ModelAttributes = {
     type: {
         type: DataTypes.STRING,
     },
-    referenceID: { //how to make this point to multiple dbs potentially?
+    messageID: {
         type: DataTypes.STRING,
         references: {
             model: 'messages',
+            key: 'id',
+        },
+    },
+    plotID: {
+        type: DataTypes.STRING,
+        references: {
+            model: 'plots',
+            key: 'id',
+        },
+    },
+    nodeID: {
+        type: DataTypes.STRING,
+        references: {
+            model: 'nodes',
+            key: 'id',
+        },
+    },
+    userID: {
+        type: DataTypes.STRING,
+        references: {
+            model: 'users',
             key: 'id',
         },
     },
