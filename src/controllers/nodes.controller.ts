@@ -1,134 +1,128 @@
+import { UUIDV4 } from 'sequelize';
 import { nodesDB } from '../models/db.index';
+import { Node } from '../models/nodes.model';
 import { RequestHandler } from 'express';
-import createHttpError from 'http-errors';
 
-export const getNodes: RequestHandler = async (req, res, errFunc) => {
+export const getNodes: RequestHandler = async (req, res) => {
     try {
-        const nodes = await nodesDB.findAll();
+        const nodes = await nodesDB.findAll().then((nodes) => nodes.map((node) => {
+            const jsonNode:Node = node.toJSON();
+            return jsonNode;
+        })) as Node[];
         res.status(200).json(nodes);
-    } catch (error) {
-        errFunc(error);
+    } catch (e) {
+        res.status(500).json({ message: e });
     }
 };
 
-export const getNode: RequestHandler = async (req, res, errFunc) => {
-    const nodeId = req.params.plotId;
-
+export const getNode: RequestHandler = async (req, res) => {
     try {
-        const node = await nodesDB.findByPk(nodeId);
-
-        if (!node) {
-            throw createHttpError(400, 'Node not found');
+        const id = req.params.id;
+        if (!id) {
+            res.status(400).json({ message: 'Missing required fields' });
+            return;
         }
 
+        const node = await nodesDB.findOne({ where: { id: id } }).then((node) => {
+            const jsonNode:Node|undefined = node?.toJSON();
+            return jsonNode;
+        });
+        if (!node){
+            res.status(400).json({ message: 'Node not found' });
+            return;
+        }
         res.status(200).json(node);
-    } catch (error) {
-        errFunc(error);
+    } catch (e) {
+        res.status(500).json({ message: e });
     }
 };
 
 interface CreateNodeBody {
-    id: string,
-    plotID?: string,
-    lastSeen?: Date,
+    node:Partial<Node>;
 }
 
-export const createNode: RequestHandler<unknown, unknown, CreateNodeBody, unknown> = async (req, res, errFunc) => {
-    const id = req.body.id;
-    const plotID = req.body.plotID;
-    const lastSeen = req.body.lastSeen;
-
+export const createNode: RequestHandler = async (req, res) => {
     try {
-        if (!id) {
-            throw createHttpError(400, 'Node must have an id');
-        }
+        const createNodeBody:CreateNodeBody = req.body;
 
-        const newNode = await nodesDB.create({
-            id: id,
-            plotID: plotID,
-            lastSeen: lastSeen,
+        await nodesDB.create({
+            ...createNodeBody.node,
+            id: createNodeBody.node.id ? UUIDV4() : null,
         });
-
-        res.status(201).json(newNode);
-    } catch (error) {
-        errFunc(error);
+        const node = await nodesDB.findOne({ where: { id: createNodeBody.node.id } }).then((node) => node?.toJSON()) as Node;
+        res.status(201).json(node);
+    } catch (e) {
+        res.status(500).json({ message: e });
     }
 };
-
-interface UpdateNodeParams {
-    id: string,
-}
 
 interface UpdateNodeBody {
-    plotID?: string,
-    lastSeen?: Date,
+    node?: Partial<Node>,
 }
 
-export const updateNode: RequestHandler<UpdateNodeParams, unknown, UpdateNodeBody, unknown> = async(req, res, errFunc) => {
-    const id = req.params.id;
-    const newPlotID = req.body.plotID;
-    const newLastSeen = req.body.lastSeen;
-
+export const updateNode: RequestHandler = async(req, res) => {
     try {
-        const node = await nodesDB.findByPk(id);
-
-        if (!node) {
-            throw createHttpError(400, 'Node not found');
+        const updateNodeBody:UpdateNodeBody = req.body;
+        const id = req.params.id;
+        if (!id || !updateNodeBody.node) {
+            res.status(400).json({ message: 'Missing required fields' });
+            return;
         }
 
-        node.setDataValue('plotID', newPlotID);
-        node.setDataValue('lastSeen', newLastSeen);
-
-        const updatedNode = await node.save();
-
-        res.status(200).json(updatedNode);
-    } catch (error) {
-        errFunc(error);
-    }
-};
-
-interface DeleteNodeParams {
-    id: string;
-}
-
-export const deleteNode: RequestHandler<DeleteNodeParams, unknown, unknown, unknown> = async (req, res, errFunc) => {
-    const id = req.params.id;
-
-    try {
-        const node = await nodesDB.findByPk(id);
-
-        if (!node) {
-            throw createHttpError(404, 'Node not found');
+        const node = await nodesDB.findOne({ where: { id: id } }).then((node) => node?.toJSON()) as Node;
+        if (!node){
+            res.status(400).json({ message: 'Node not found' });
+            return;
         }
 
-        await node.destroy();
-
-        res.status(204).send();
-    } catch (error) {
-        errFunc(error);
-    }
-};
-
-interface FindNodeByPlotIDParams {
-    plotID: string,
-}
-
-export const findNodeByPlotID: RequestHandler<FindNodeByPlotIDParams, unknown, unknown, unknown> = async (req, res, errFunc) => {
-    const plotID = req.params.plotID;
-
-    try {
-        const node = await nodesDB.findAll({
-            where: {
-                plotID: plotID,
-            },
+        nodesDB.update({
+            ...updateNodeBody.node,
+        }, { where: { id: id },
         });
 
-        if (!node) {
-            throw createHttpError(404, 'Node not found');
-        }
+        const updatedNode = await nodesDB.findOne({ where: { id: id } }).then((node) => node?.toJSON()) as Node;
 
+        res.status(200).json({ node: updatedNode, message: 'Node updated' });
+    } catch (e) {
+        res.status(500).json({ message: e });    }
+};
+
+export const deleteNode: RequestHandler = async (req, res) => {
+    try {
+        const id = req.params.id;
+        if (!id) {
+            res.status(400).json({ message: 'Missing required fields' });
+            return;
+        }
+        const node = await nodesDB.findOne({ where: { id: id } }).then((node) => node?.toJSON()) as Node;
+        if (!node){
+            res.status(400).json({ message: 'Node not found' });
+            return;
+        }
+        await nodesDB.destroy({ where: { id: id } });
+        res.status(200).json({ message: 'Node deleted' });
+    } catch (e) {
+        res.status(500).json({ message: e });
+    }
+};
+
+export const findNodeByPlotID: RequestHandler = async (req, res) => {
+    try {
+        const plotID = req.params.plotID;
+        if (!plotID) {
+            res.status(400).json({ message: 'Missing required fields!' });
+        }
+        const node = await nodesDB.findAll({ where: { plotID: plotID } }).then((nodes) => nodes.map((node) => {
+            const jsonNode:Node = node.toJSON();
+            return jsonNode;
+        })) as Node[];
+
+        if (!node){
+            res.status(400).json({ message: 'Node not found' });
+            return;
+        }
         res.status(200).json(node);
-    } catch (error) {
-        errFunc(error);
+    } catch (e) {
+        res.status(500).json({ message: e });
     }
 };

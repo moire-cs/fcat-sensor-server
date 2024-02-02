@@ -18,9 +18,9 @@ export const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASS
     },
 });
 
-export const usersDB = sequelize.define('users',usersModel);
-export const nodesDB = sequelize.define('nodes',nodesModel);
-export const messagesDB = sequelize.define('messages',messagesModel);
-export const logDB = sequelize.define('log',logModel);
-export const plotsDB = sequelize.define('plots',plotsModel);
-export const sessionsDB = sequelize.define('sessions',sessionsModel);
+export const usersDB = sequelize.define('users', usersModel);
+export const nodesDB = sequelize.define('nodes', nodesModel);
+export const messagesDB = sequelize.define('messages', messagesModel);
+export const logDB = sequelize.define('log', logModel);
+export const plotsDB = sequelize.define('plots', plotsModel);
+export const sessionsDB = sequelize.define('sessions', sessionsModel);

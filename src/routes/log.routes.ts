@@ -7,6 +7,4 @@ export const useLogRoutes = (router:Express) => {
     router.get(URL_BASE, logController.getLogs);
     router.get(URL_BASE + '/:id', logController.getLog);
     router.post(URL_BASE + '/', logController.createLog);
-    router.patch(URL_BASE + '/updateLog/:id', logController.updateLog);
-    router.delete(URL_BASE + '/deleteLog/:id', logController.deleteLog);
 };

@@ -1,5 +1,4 @@
-import { ModelAttributes } from 'sequelize';
-import { DataTypes } from 'sequelize';
+import { ModelAttributes, DataTypes } from 'sequelize';
 
 export const nodesModel:ModelAttributes = {
     id: {
@@ -9,6 +8,7 @@ export const nodesModel:ModelAttributes = {
     },
     plotID: {
         type: DataTypes.STRING,
+        allowNull: true,
         references: {
             model: 'plots',
             key: 'id',
@@ -16,5 +16,12 @@ export const nodesModel:ModelAttributes = {
     },
     lastSeen: {
         type: DataTypes.DATE(3),
+        allowNull: true,
     },
 };
+
+export type Node = {
+    id: string,
+    plotID: string|null,
+    lastSeen: Date|null,
+}

@@ -1,5 +1,4 @@
-import { ModelAttributes } from 'sequelize';
-import { DataTypes } from 'sequelize';
+import { ModelAttributes, DataTypes } from 'sequelize';
 
 export const logModel:ModelAttributes = {
     id: {
@@ -9,15 +8,19 @@ export const logModel:ModelAttributes = {
     },
     time: {
         type: DataTypes.DATE(3),
+        allowNull: false,
     },
     message: {
         type: DataTypes.STRING,
+        allowNull: false,
     },
     type: {
         type: DataTypes.STRING,
+        allowNull: false,
     },
     messageID: {
         type: DataTypes.STRING,
+        allowNull: true,
         references: {
             model: 'messages',
             key: 'id',
@@ -25,6 +28,7 @@ export const logModel:ModelAttributes = {
     },
     plotID: {
         type: DataTypes.STRING,
+        allowNull: true,
         references: {
             model: 'plots',
             key: 'id',
@@ -32,6 +36,7 @@ export const logModel:ModelAttributes = {
     },
     nodeID: {
         type: DataTypes.STRING,
+        allowNull: true,
         references: {
             model: 'nodes',
             key: 'id',
@@ -39,9 +44,21 @@ export const logModel:ModelAttributes = {
     },
     userID: {
         type: DataTypes.STRING,
+        allowNull: true,
         references: {
             model: 'users',
             key: 'id',
         },
     },
 };
+
+export type Log = {
+    id: string,
+    time: Date,
+    message: string,
+    type: string,
+    messageID: string|null,
+    plotID: string|null,
+    nodeID: string|null,
+    userID: string|null,
+}

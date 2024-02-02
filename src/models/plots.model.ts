@@ -1,5 +1,4 @@
-import { ModelAttributes } from 'sequelize';
-import { DataTypes } from 'sequelize';
+import { ModelAttributes, DataTypes } from 'sequelize';
 
 export const plotsModel:ModelAttributes = {
     id: {
@@ -9,6 +8,7 @@ export const plotsModel:ModelAttributes = {
     },
     nodeID: {
         type: DataTypes.STRING,
+        allowNull: true,
         references: {
             model: 'nodes',
             key: 'id',
@@ -16,11 +16,22 @@ export const plotsModel:ModelAttributes = {
     },
     latitude: {
         type: DataTypes.DOUBLE,
+        allowNull: false,
     },
     longitude: {
         type: DataTypes.DOUBLE,
+        allowNull: false,
     },
     description: {
         type: DataTypes.STRING,
+        allowNull: false,
     },
 };
+
+export type Plot = {
+    id: string,
+    nodeID: string|null,
+    latitude: number,
+    longitude: number,
+    description: string,
+}
