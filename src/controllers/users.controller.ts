@@ -6,7 +6,6 @@ import { v4 as guid } from 'uuid';
 import { EXPIRATION_TIME, Session } from '../models/sessions.model';
 import { RequestHandler } from 'express';
 import createHttpError from 'http-errors';
-import { UserType } from '../models/users.model';
 
 type LoginBody = {email: string, password: string}
 export const login = async (req: Express.Request, res: Express.Response) => {
@@ -93,11 +92,10 @@ export const authenticate = async (req: Express.Request, res: Express.Response, 
     try {
         const token = req.headers.token as string;
         const userID = req.headers.userid as string;
-        const userType = req.headers.usertype as UserType;
-        if (!token || !userID || !userType) {
+        if (!token || !userID ) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
-        const user = await usersDB.findOne({ where:{ id:userID,type:userType } }).then((user) => user?.toJSON() as User);
+        const user = await usersDB.findOne({ where:{ id:userID } }).then((user) => user?.toJSON() as User);
         if (!user){
             return res.status(401).json({ message: 'Unauthorized' });
         }

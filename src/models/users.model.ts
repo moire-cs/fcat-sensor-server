@@ -13,10 +13,6 @@ export const usersModel:ModelAttributes = {
     password: {
         type: DataTypes.STRING,
     },
-    type: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
     email: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -33,9 +29,6 @@ export type User = {
     id: string,
     name: string,
     password: string,
-    type: UserType,
     email: string,
     preferences: object|null,
 }
-
-export type UserType = 'admin' | 'user';
