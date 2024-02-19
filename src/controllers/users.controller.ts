@@ -3,31 +3,32 @@ import Express from 'express';
 import { User } from '../types/User';
 import bcrypt from 'bcrypt';
 import { v4 as guid } from 'uuid';
-import { EXPIRATION_TIME } from '../models/sessions.model';
+import { EXPIRATION_TIME, Session } from '../models/sessions.model';
 import { RequestHandler } from 'express';
 import createHttpError from 'http-errors';
+import { UserType } from '../models/users.model';
 
+type LoginBody = {email: string, password: string}
 export const login = async (req: Express.Request, res: Express.Response) => {
     try {
-        if (!req.body.email || !req.body.password) {
-            return res.status(400).json({ message: 'Invalid credentials' });
+        const body = req.body as LoginBody;
+        if (!body.email || !body.password) {
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
-        const { email, password }:{email:string,password:string} = req.body;
-
-        const users = await usersDB.findAll({ where: { email } }).then((users) => users.map((user) => user.toJSON() as User));
-        if (!users || users.length === 0) {
-            return res.status(404).json({ message: 'User not found' });
+        const user = await usersDB.findOne({ where: { email:body.email } }).then((user) => user?.toJSON() as User);
+        if (!user) {
+            return res.status(401).json({ message: 'User not found' });
         }
-        const isMatchAny = await Promise.all(users.map(async (user) => await bcrypt.compare(password, user.password)));
-        if (!isMatchAny) {
-            return res.status(400).json({ message: 'Invalid credentials' });
+        const isMatch = await bcrypt.compare(body.password, user.password);
+        if (!isMatch){
+            return res.status(401).json({ message:'Invalid credentials' });
         }
         //create token
         const token = guid();
         const hashedToken = await bcrypt.hash(token, 10);
-        await sessionsDB.create({ token: hashedToken, userID: users[0].id, expires: new Date(Date.now() + EXPIRATION_TIME) });
+        await sessionsDB.create({ token: hashedToken, userID: user.id, expires: Date.now() + EXPIRATION_TIME });
 
-        res.json({ token, userID: users[0].id });
+        res.json({ token, userId: user.id });
     } catch (error) {
         res.status(500).json({ message: error });
     }
@@ -88,16 +89,27 @@ export const register = async (req: Express.Request, res: Express.Response) => {
         res.status(500).json({ message: error });
     }
 };
-
 export const authenticate = async (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
     try {
         const token = req.headers.token as string;
         const userID = req.headers.userid as string;
-        if (!token || !userID) {
+        const userType = req.headers.usertype as UserType;
+        if (!token || !userID || !userType) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
-        const session = await sessionsDB.findOne({ where: { userID } }).then((session) => session?.toJSON());
-        const isMatch = await bcrypt.compare(token, session?.token as string);
+        const user = await usersDB.findOne({ where:{ id:userID,type:userType } }).then((user) => user?.toJSON() as User);
+        if (!user){
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        const session = await sessionsDB.findOne({ where: { userID } }).then((session) => session?.toJSON()) as Session;
+        if (!session){
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        if (session.expires < Date.now()){
+            await sessionsDB.destroy({ where:{ id:session.id } });
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        const isMatch = await bcrypt.compare(token, session.token);
         if (!isMatch) {
             return res.status(401).json({ message: 'Unauthorized' });
         }

@@ -13,8 +13,8 @@ export const usersModel:ModelAttributes = {
     password: {
         type: DataTypes.STRING,
     },
-    admin: {
-        type: DataTypes.BOOLEAN,
+    type: {
+        type: DataTypes.STRING,
         allowNull: false,
     },
     email: {
@@ -33,9 +33,9 @@ export type User = {
     id: string,
     name: string,
     password: string,
-    admin: Admin,
+    type: UserType,
     email: string,
     preferences: object|null,
 }
 
-export type Admin = 'admin' | 'user';
+export type UserType = 'admin' | 'user';
