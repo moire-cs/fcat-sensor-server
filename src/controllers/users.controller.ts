@@ -105,7 +105,7 @@ export const authenticate = async (req: Express.Request, res: Express.Response, 
         if (!session){
             return res.status(401).json({ message: 'Unauthorized' });
         }
-        if (session.expires < Date.now()){
+        if (session.expires.getTime() < Date.now()){
             await sessionsDB.destroy({ where:{ id:session.id } });
             return res.status(401).json({ message: 'Unauthorized' });
         }
