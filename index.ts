@@ -1,7 +1,6 @@
-import express, { NextFunction, Request, Response }  from 'express';
+import express  from 'express';
 import cors from 'cors';
 import { sequelize } from './src/models/db.index';
-import createHttpError, { isHttpError } from 'http-errors';
 import { useMessageRoutes } from './src/routes/messages.routes';
 import { useUserRoutes } from './src/routes/users.routes';
 

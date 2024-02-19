@@ -21,34 +21,18 @@ export const logModel:ModelAttributes = {
     messageID: {
         type: DataTypes.STRING,
         allowNull: true,
-        references: {
-            model: 'messages',
-            key: 'id',
-        },
     },
     plotID: {
         type: DataTypes.STRING,
         allowNull: true,
-        references: {
-            model: 'plots',
-            key: 'id',
-        },
     },
     nodeID: {
         type: DataTypes.STRING,
         allowNull: true,
-        references: {
-            model: 'nodes',
-            key: 'id',
-        },
     },
     userID: {
         type: DataTypes.STRING,
         allowNull: true,
-        references: {
-            model: 'users',
-            key: 'id',
-        },
     },
 };
 

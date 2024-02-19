@@ -9,10 +9,6 @@ export const nodesModel:ModelAttributes = {
     plotID: {
         type: DataTypes.STRING,
         allowNull: true,
-        references: {
-            model: 'plots',
-            key: 'id',
-        },
     },
     lastSeen: {
         type: DataTypes.DATE(3),

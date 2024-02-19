@@ -9,7 +9,7 @@ export const sessionsModel:ModelAttributes = {
         defaultValue: DataTypes.UUIDV4,
     },
     expires: {
-        type: DataTypes.NUMBER,
+        type: DataTypes.DATE,
         allowNull: false,
     },
     token: {
@@ -19,16 +19,12 @@ export const sessionsModel:ModelAttributes = {
     userID: {
         type: DataTypes.STRING,
         allowNull: false,
-        references: {
-            model: 'users',
-            key: 'id',
-        },
     },
 };
 
 export type Session = {
     id: string,
-    expires: number,
+    expires: Date,
     token: string,
     userID: string,
 }

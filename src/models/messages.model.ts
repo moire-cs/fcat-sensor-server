@@ -9,18 +9,10 @@ export const messagesModel:ModelAttributes = {
     nodeID: {
         type: DataTypes.STRING,
         allowNull: false,
-        references: {
-            model: 'nodes',
-            key: 'id',
-        },
     },
     plotID:{
         type: DataTypes.STRING,
         allowNull: false,
-        references: {
-            model: 'plots',
-            key: 'id',
-        },
     },
     time: {
         type: DataTypes.DATE(3),
