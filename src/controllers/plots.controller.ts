@@ -80,7 +80,7 @@ export const updatePlot: RequestHandler = async(req, res) => {
             ...updatePlotBody.plot,
         }, { where: { id: id },
         });
-        const updatedPlot = await plotsDB.findOne({ where: { id: id } }).then((plot) => plot?.toJSON()) as Plot;
+        const updatedPlot = await plotsDB.findOne({ where: { id: id } }).then((updatedPlot) => updatedPlot?.toJSON()) as Plot;
 
         res.status(200).json({ machine: updatedPlot, message: 'Plot updated' });
     } catch (e) {
@@ -112,17 +112,18 @@ export const findPlotByNodeID: RequestHandler = async (req, res) => {
         const nodeID = req.params.nodeID;
         if (!nodeID) {
             res.status(400).json({ message: 'Missing required fields!' });
+            return;
         }
-        const plot = await plotsDB.findAll({ where: { nodeID: nodeID } }).then((plots) => plots.map((plot) => {
+        const plots = await plotsDB.findAll({ where: { nodeID: nodeID } }).then((plots) => plots.map((plot) => {
             const jsonPlot:Plot = plot.toJSON();
             return jsonPlot;
         })) as Plot[];
 
-        if (!plot){
-            res.status(400).json({ message: 'Plot not found' });
+        if (!plots){
+            res.status(400).json({ message: 'Plots not found' });
             return;
         }
-        res.status(200).json(plot);
+        res.status(200).json(plots);
     } catch (e) {
         res.status(500).json({ message: e });
     }
