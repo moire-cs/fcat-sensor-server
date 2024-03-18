@@ -83,7 +83,7 @@ export const register = async (req: Express.Request, res: Express.Response) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        await usersDB.create({ name, password: hashedPassword, email, preferences:'{}' });
+        await usersDB.create({ name, password: hashedPassword, email, preferences:'{}',type:'user' });
         res.status(201).json({ message:'User created' });
     } catch (error) {
         res.status(500).json({ message: error });
