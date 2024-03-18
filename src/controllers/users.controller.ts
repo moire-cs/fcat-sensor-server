@@ -38,7 +38,7 @@ export const logout = async (req: Express.Request, res: Express.Response) => {
             return res.status(400).json({ message: 'Email is required' });
         }
         const { email }:{email:string} = req.body;
-        const user = await usersDB.findOne({ where: { email } }).then((user) => user?.toJSON() as User);
+        const user = await usersDB.findOne({ where: { email }, attributes:{ exclude:['password'] } }).then((user) => user?.toJSON() as Omit<User,'password'>);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -75,7 +75,7 @@ export const register = async (req: Express.Request, res: Express.Response) => {
             return res.status(400).json({ message: 'Invalid email' });
         }
 
-        const user = await usersDB.findOne({ where: { email } });
+        const user = await usersDB.findOne({ where: { email }, attributes:{ exclude:['password'] } });
         if (user) {
             return res.status(400).json({ message: 'User already exists' });
         }
@@ -96,7 +96,7 @@ export const authenticate = async (req: Express.Request, res: Express.Response, 
         if (!token || !userID || !userType) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
-        const user = await usersDB.findOne({ where:{ id:userID,type:userType } }).then((user) => user?.toJSON() as User);
+        const user = await usersDB.findOne({ where:{ id:userID,type:userType }, attributes:{ exclude:['password'] } }).then((user) => user?.toJSON() as Omit<User,'password'>);
         if (!user){
             return res.status(401).json({ message: 'Unauthorized' });
         }
@@ -120,10 +120,10 @@ export const authenticate = async (req: Express.Request, res: Express.Response, 
 
 export const getUsers: RequestHandler = async (req, res) => {
     try {
-        const users = await usersDB.findAll().then((users) => users.map((user) => {
+        const users = await usersDB.findAll({ attributes:{ exclude:['password'] } } ).then((users) => users.map((user) => {
             const jsonUser:User = user.toJSON();
             return jsonUser;
-        })) as User[];
+        })) as Omit<User,'password'>[];
         res.status(200).json({ users });
     } catch (e) {
         res.status(500).json({ message: e });    }
@@ -136,10 +136,10 @@ export const getUser: RequestHandler = async (req, res) => {
             res.status(400).json({ message: 'Missing required fields' });
             return;
         }
-        const user = await usersDB.findOne({ where: { id: id } }).then((user) => {
+        const user = await usersDB.findOne({ where: { id: id }, attributes:{ exclude:['password'] } }).then((user) => {
             const jsonUser:User|undefined = user?.toJSON();
             return jsonUser;
-        });
+        }) as Omit<User,'password'>;
         if (!user){
             res.status(400).json({ message: 'User not found' });
             return;
@@ -166,7 +166,7 @@ export const updateUser: RequestHandler = async(req, res) => {
             res.status(400).json({ message: 'Missing required fields' });
             return;
         }
-        const user = await usersDB.findOne({ where: { id: id } }).then((user) => user?.toJSON()) as User;
+        const user = await usersDB.findOne({ where: { id: id }, attributes:{ exclude:['password'] } }).then((user) => user?.toJSON()) as Omit<User,'password'>;
         if (!user) {
             res.status(400).json({ message: 'User not found' });
             return;
@@ -175,7 +175,7 @@ export const updateUser: RequestHandler = async(req, res) => {
             ...updateUserBody.user,
         }, { where: { id:id },
         });
-        const updatedUser = await usersDB.findOne({ where:{ id:id } }).then((updatedUser) => updatedUser?.toJSON()) as User;
+        const updatedUser = await usersDB.findOne({ where:{ id:id }, attributes:{ exclude:['password'] } }).then((updatedUser) => updatedUser?.toJSON()) as Omit<User,'password'>;
 
         res.status(200).json(updatedUser);
     } catch (e) {
@@ -190,7 +190,7 @@ export const deleteUser: RequestHandler = async (req, res) => {
             res.status(400).json({ message: 'Missing required fields' });
             return;
         }
-        const user = await usersDB.findOne({ where: { id: id } }).then((user) => user?.toJSON()) as User;
+        const user = await usersDB.findOne({ where: { id: id }, attributes:{ exclude:['password'] } }).then((user) => user?.toJSON()) as Omit<User,'password'>;
         if (!user){
             res.status(400).json({ message: 'User not found' });
             return;
@@ -213,7 +213,7 @@ export const getUserByEmail: RequestHandler = async (req, res) => {
         const users = await usersDB.findAll({ where: { email: email }, attributes:{ exclude:['password'] } }).then((users) => users.map((users) => {
             const jsonUsers:User = users.toJSON();
             return jsonUsers;
-        })) as User[];
+        })) as Omit<User,'password'>[];
 
         if (!users){
             res.status(400).json({ message: 'Users not found' });
@@ -232,10 +232,10 @@ export const getUserByName: RequestHandler = async (req, res) => {
             res.status(400).json({ message: 'Missing required fields!' });
             return;
         }
-        const users = await usersDB.findAll({ where: { name: name } }).then((users) => users.map((users) => {
+        const users = await usersDB.findAll({ where: { name: name }, attributes:{ exclude:['password'] } }).then((users) => users.map((users) => {
             const jsonUsers:User = users.toJSON();
             return jsonUsers;
-        })) as User[];
+        })) as Omit<User,'password'>[];
 
         if (!users){
             res.status(400).json({ message: 'Users not found' });
