@@ -1,12 +1,21 @@
 import { usersDB, sessionsDB } from '../models/db.index';
 import Express from 'express';
-import { User } from '../types/User';
 import bcrypt from 'bcrypt';
 import { v4 as guid } from 'uuid';
 import { EXPIRATION_TIME, Session } from '../models/sessions.model';
 import { RequestHandler } from 'express';
-import createHttpError from 'http-errors';
-import { UserType } from '../models/users.model';
+import { User, UserType } from '../models/users.model';
+
+function omit<Data extends object, Keys extends keyof Data>(
+    data: Data,
+    keys: Keys[]
+): Omit<Data, Keys> {
+    const result = { ...data };
+    for (const key of keys) {
+        delete result[key];
+    }
+    return result as Omit<Data, Keys>;
+}
 
 type LoginBody = {email: string, password: string}
 export const login = async (req: Express.Request, res: Express.Response) => {
@@ -23,12 +32,13 @@ export const login = async (req: Express.Request, res: Express.Response) => {
         if (!isMatch){
             return res.status(401).json({ message:'Invalid credentials' });
         }
-        //create token
+        const publicUser = omit(user, ['password']);
+
         const token = guid();
         const hashedToken = await bcrypt.hash(token, 10);
-        await sessionsDB.create({ token: hashedToken, userID: user.id, expires: Date.now() + EXPIRATION_TIME });
+        await sessionsDB.create({ token: hashedToken, userID: publicUser.id, expires: Date.now() + EXPIRATION_TIME });
 
-        res.json({ token, userId: user.id });
+        res.json({ token, userId: publicUser.id });
     } catch (error) {
         res.status(500).json({ message: error });
     }
@@ -40,7 +50,7 @@ export const logout = async (req: Express.Request, res: Express.Response) => {
             return res.status(400).json({ message: 'Email is required' });
         }
         const { email }:{email:string} = req.body;
-        const user = await usersDB.findOne({ where: { email } }).then((user) => user?.toJSON() as User);
+        const user = await usersDB.findOne({ where: { email }, attributes:{ exclude:['password'] } }).then((user) => user?.toJSON() as Omit<User,'password'>);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -77,14 +87,15 @@ export const register = async (req: Express.Request, res: Express.Response) => {
             return res.status(400).json({ message: 'Invalid email' });
         }
 
-        const user = await usersDB.findOne({ where: { email } });
+        const user = await usersDB.findOne({ where: { email }, attributes:{ exclude:['password'] } });
         if (user) {
             return res.status(400).json({ message: 'User already exists' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        await usersDB.create({ name, password: hashedPassword, email, preferences:'{}' });
-        res.status(201).json({ message:'User created' });
+        const newUser:Omit<User,'id'> = { name, password: hashedPassword, email, preferences:null, type: 'user' };
+        await usersDB.create(newUser);
+        return res.status(201).json({ message:'User created', newUser });
     } catch (error) {
         res.status(500).json({ message: error });
     }
@@ -97,21 +108,21 @@ export const authenticate = async (req: Express.Request, res: Express.Response, 
         if (!token || !userID || !userType) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
-        const user = await usersDB.findOne({ where:{ id:userID,type:userType } }).then((user) => user?.toJSON() as User);
+        const user = await usersDB.findOne({ where:{ id:userID,type:userType }, attributes:{ exclude:['password'] } }).then((user) => user?.toJSON() as Omit<User,'password'>);
         if (!user){
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(403).json({ message: 'Unauthorized' }); //Send user to login/register on the frontend
         }
         const session = await sessionsDB.findOne({ where: { userID } }).then((session) => session?.toJSON()) as Session;
         if (!session){
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(403).json({ message: 'Unauthorized' }); //Send user to login/register on the frontend
         }
         if (session.expires.getTime() < Date.now()){
             await sessionsDB.destroy({ where:{ id:session.id } });
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(403).json({ message: 'Unauthorized' }); //Send user to login/register on the frontend
         }
         const isMatch = await bcrypt.compare(token, session.token);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(403).json({ message: 'Unauthorized' }); //Send user to login/register on the frontend
         }
         next();
     } catch (error) {
@@ -119,203 +130,131 @@ export const authenticate = async (req: Express.Request, res: Express.Response, 
     }
 };
 
-export const getUsers: RequestHandler = async (req, res, errFunc) => {
+export const getUsers: RequestHandler = async (req, res) => {
     try {
-        const users = await usersDB.findAll();
-        res.status(200).json(users);
-    } catch (error) {
-        errFunc(error);
-    }
+        const users = await usersDB.findAll({ attributes:{ exclude:['password'] } } ).then((users) => users.map((user) => {
+            const jsonUser:User = user.toJSON();
+            return jsonUser;
+        })) as Omit<User,'password'>[];
+        res.status(200).json({ users });
+    } catch (e) {
+        res.status(500).json({ message: e });    }
 };
 
-export const getUser: RequestHandler = async (req, res, errFunc) => {
-    const id = req.params.id;
-
+export const getUser: RequestHandler = async (req, res) => {
     try {
-        const user = await usersDB.findByPk(id);
-
-        if (!user) {
-            throw createHttpError(400, 'User not found');
-        }
-
-        res.status(200).json(user);
-    } catch (error) {
-        errFunc(error);
-    }
-};
-
-interface CreateUserBody {
-    id: string,
-    name: string,
-    password: string,
-    admin?: boolean,
-    email: string,
-    preferences?: string,
-}
-
-export const createUser: RequestHandler<unknown, unknown, CreateUserBody, unknown> = async (req, res, errFunc) => {
-    const id = req.body.id;
-    const name = req.body.name;
-    const password = req.body.password;
-    const admin = req.body.admin;
-    const email = req.body.email;
-    const preferences = req.body.preferences;
-
-    try {
+        const id = req.params.id;
         if (!id) {
-            throw createHttpError(400, 'User must have an id');
+            res.status(400).json({ message: 'Missing required fields' });
+            return;
         }
-
-        if (!name) {
-            throw createHttpError(400, 'User must have a name');
+        const user = await usersDB.findOne({ where: { id: id }, attributes:{ exclude:['password'] } }).then((user) => {
+            const jsonUser:User|undefined = user?.toJSON();
+            return jsonUser;
+        }) as Omit<User,'password'>;
+        if (!user){
+            res.status(400).json({ message: 'User not found' });
+            return;
         }
-
-        if (!password) {
-            throw createHttpError(400, 'User must have a password');
-        }
-
-        if (!email) {
-            throw createHttpError(400, 'User must have an email');
-        }
-
-        const newUser = await usersDB.create({
-            id: id,
-            name: name,
-            password: password,
-            admin: admin,
-            email: email,
-            preferences: preferences,
-        });
-
-        res.status(201).json(newUser);
-    } catch (error) {
-        errFunc(error);
+        res.status(200).json({ user });
+    } catch (e) {
+        res.status(500).json({ message: e });
     }
 };
-
-interface UpdateUserParams {
-    id: string,
-}
 
 interface UpdateUserBody {
-    id: string,
-    name: string,
-    password: string,
-    admin?: boolean,
-    email: string,
-    preferences?: string,
+    user?:Partial<User>;
 }
 
-export const updateUser: RequestHandler<UpdateUserParams, unknown, UpdateUserBody, unknown> = async(req, res, errFunc) => {
-    const id = req.body.id;
-    const newName = req.body.name;
-    const newPassword = req.body.password;
-    const newAdmin = req.body.admin;
-    const newEmail = req.body.email;
-    const newPreferences = req.body.preferences;
-
+export const updateUser: RequestHandler = async(req, res) => {
     try {
-        const user = await usersDB.findByPk(id);
-
+        const updateUserBody:UpdateUserBody = req.body;
+        const id = req.params.id;
+        if (!id) {
+            res.status(400).json({ message: 'Missing required fields' });
+            return;
+        }
+        if (!updateUserBody.user) {
+            res.status(400).json({ message: 'Missing required fields' });
+            return;
+        }
+        const user = await usersDB.findOne({ where: { id: id }, attributes:{ exclude:['password'] } }).then((user) => user?.toJSON()) as Omit<User,'password'>;
         if (!user) {
-            throw createHttpError(400, 'User not found');
+            res.status(400).json({ message: 'User not found' });
+            return;
         }
-
-        if (!newName) {
-            throw createHttpError(400, 'User must have a name');
-        }
-
-        if (!newPassword) {
-            throw createHttpError(400, 'User must have a password');
-        }
-
-        if (!newEmail) {
-            throw createHttpError(400, 'User must have a email');
-        }
-
-        user.setDataValue('name', newName);
-        user.setDataValue('password', newPassword);
-        user.setDataValue('admin', newAdmin);
-        user.setDataValue('email', newEmail);
-        user.setDataValue('preferences', newPreferences);
-
-        const updatedPlot = await user.save();
-
-        res.status(200).json(updatedPlot);
-    } catch (error) {
-        errFunc(error);
-    }
-};
-
-interface DeleteUserParams {
-    id: string;
-}
-
-export const deleteUser: RequestHandler<DeleteUserParams, unknown, unknown, unknown> = async (req, res, errFunc) => {
-    const id = req.params.id;
-
-    try {
-        const user = await usersDB.findByPk(id);
-
-        if (!user) {
-            throw createHttpError(404, 'User not found');
-        }
-
-        await user.destroy();
-
-        res.status(204).send();
-    } catch (error) {
-        errFunc(error);
-    }
-};
-
-interface GetUserByEmailParams {
-    email: string;
-}
-
-export const getUserByEmail: RequestHandler<GetUserByEmailParams, unknown, unknown, unknown> = async (req, res, errFunc) => {
-    const email = req.params.email;
-
-    try {
-        const user = await usersDB.findAll({
-            where: {
-                email: email,
-            },
-            attributes:{
-                exclude:['password'],
-            },
+        usersDB.update({
+            ...updateUserBody.user,
+        }, { where: { id:id },
         });
+        const updatedUser = await usersDB.findOne({ where:{ id:id }, attributes:{ exclude:['password'] } }).then((updatedUser) => updatedUser?.toJSON()) as Omit<User,'password'>;
 
-        if (!user) {
-            throw createHttpError(400, 'User not found');
-        }
-
-        res.status(200).json(user);
-    } catch (error) {
-        errFunc(error);
+        res.status(200).json(updatedUser);
+    } catch (e) {
+        res.status(500).json({ message: e });
     }
 };
 
-interface GetUserByNameParams {
-    name: string;
-}
-
-export const getUserByName: RequestHandler<GetUserByNameParams, unknown, unknown, unknown> = async (req, res, errFunc) => {
-    const name = req.params.name;
-
+export const deleteUser: RequestHandler = async (req, res) => {
     try {
-        const user = await usersDB.findAll({
-            where: {
-                name: name,
-            },
-        });
+        const id = req.params.id;
+        if (!id) {
+            res.status(400).json({ message: 'Missing required fields' });
+            return;
+        }
+        const user = await usersDB.findOne({ where: { id: id }, attributes:{ exclude:['password'] } }).then((user) => user?.toJSON()) as Omit<User,'password'>;
+        if (!user){
+            res.status(400).json({ message: 'User not found' });
+            return;
+        }
+        await usersDB.destroy({ where: { id: id } });
+        res.status(200).json({ message: 'User deleted' });
+    } catch (e) {
+        res.status(500).json({ message: e });
+    }
+};
 
-        if (!user) {
-            throw createHttpError(404, 'User not found');
+export const getUserByEmail: RequestHandler = async (req, res) => {
+    try {
+        const email = req.params.email;
+        if (!email) {
+            res.status(400).json({ message: 'Missing required fields!' });
+            return;
         }
 
-        res.status(200).json(user);
-    } catch (error) {
-        errFunc(error);
+        const users = await usersDB.findAll({ where: { email: email }, attributes:{ exclude:['password'] } }).then((users) => users.map((users) => {
+            const jsonUsers:User = users.toJSON();
+            return jsonUsers;
+        })) as Omit<User,'password'>[];
+
+        if (!users){
+            res.status(400).json({ message: 'Users not found' });
+            return;
+        }
+        res.status(200).json(users);
+    } catch (e) {
+        res.status(500).json({ message: e });
+    }
+};
+
+export const getUserByName: RequestHandler = async (req, res) => {
+    try {
+        const name = req.params.name;
+        if (!name) {
+            res.status(400).json({ message: 'Missing required fields!' });
+            return;
+        }
+        const users = await usersDB.findAll({ where: { name: name }, attributes:{ exclude:['password'] } }).then((users) => users.map((users) => {
+            const jsonUsers:User = users.toJSON();
+            return jsonUsers;
+        })) as Omit<User,'password'>[];
+
+        if (!users){
+            res.status(400).json({ message: 'Users not found' });
+            return;
+        }
+        res.status(200).json(users);
+    } catch (e) {
+        res.status(500).json({ message: e });
     }
 };
