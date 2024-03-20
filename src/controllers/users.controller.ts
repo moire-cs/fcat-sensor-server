@@ -6,6 +6,17 @@ import { EXPIRATION_TIME, Session } from '../models/sessions.model';
 import { RequestHandler } from 'express';
 import { User, UserType } from '../models/users.model';
 
+function omit<Data extends object, Keys extends keyof Data>(
+    data: Data,
+    keys: Keys[]
+): Omit<Data, Keys> {
+    const result = { ...data };
+    for (const key of keys) {
+        delete result[key];
+    }
+    return result as Omit<Data, Keys>;
+}
+
 type LoginBody = {email: string, password: string}
 export const login = async (req: Express.Request, res: Express.Response) => {
     try {
@@ -21,12 +32,13 @@ export const login = async (req: Express.Request, res: Express.Response) => {
         if (!isMatch){
             return res.status(401).json({ message:'Invalid credentials' });
         }
-        //create token
+        const publicUser = omit(user, ['password']);
+
         const token = guid();
         const hashedToken = await bcrypt.hash(token, 10);
-        await sessionsDB.create({ token: hashedToken, userID: user.id, expires: Date.now() + EXPIRATION_TIME });
+        await sessionsDB.create({ token: hashedToken, userID: publicUser.id, expires: Date.now() + EXPIRATION_TIME });
 
-        res.json({ token, userId: user.id });
+        res.json({ token, userId: publicUser.id });
     } catch (error) {
         res.status(500).json({ message: error });
     }
@@ -83,7 +95,7 @@ export const register = async (req: Express.Request, res: Express.Response) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser:Omit<User,'id'> = { name, password: hashedPassword, email, preferences:null, type: 'user' };
         await usersDB.create(newUser);
-        res.status(201).json({ message:'User created' });
+        return res.status(201).json({ message:'User created', newUser });
     } catch (error) {
         res.status(500).json({ message: error });
     }
@@ -98,19 +110,19 @@ export const authenticate = async (req: Express.Request, res: Express.Response, 
         }
         const user = await usersDB.findOne({ where:{ id:userID,type:userType }, attributes:{ exclude:['password'] } }).then((user) => user?.toJSON() as Omit<User,'password'>);
         if (!user){
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(403).json({ message: 'Unauthorized' }); //Send user to login/register on the frontend
         }
         const session = await sessionsDB.findOne({ where: { userID } }).then((session) => session?.toJSON()) as Session;
         if (!session){
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(403).json({ message: 'Unauthorized' }); //Send user to login/register on the frontend
         }
         if (session.expires.getTime() < Date.now()){
             await sessionsDB.destroy({ where:{ id:session.id } });
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(403).json({ message: 'Unauthorized' }); //Send user to login/register on the frontend
         }
         const isMatch = await bcrypt.compare(token, session.token);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Unauthorized' });
+            return res.status(403).json({ message: 'Unauthorized' }); //Send user to login/register on the frontend
         }
         next();
     } catch (error) {
