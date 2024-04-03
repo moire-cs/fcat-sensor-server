@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "ts-node index.ts",
+    "devServer": "nodemon index.ts",
     "dev": "concurrently \"npm run start\" \"npm run client\"",
     "client": "cd ../fcat-sensor-client && npm start",
     "serve": "IS_PROD=true ts-node index.ts"
@@ -19,6 +20,7 @@
     "@types/uuid": "^9.0.7",
     "@types/waterline": "^0.13.8",
     "concurrently": "^8.2.1",
+    "nodemon": "^3.0.3",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2"
   },
