@@ -3,7 +3,7 @@ import { serialConfig } from './src/config/serial.config';
 import { DelimiterParser } from '@serialport/parser-delimiter';
 import fs from 'fs';
 
-const port = new SerialPort({ path: `/dev/${serialConfig.port}`, baudRate: serialConfig.baudRate });
+const port = new SerialPort({ path: `${serialConfig.port}`, baudRate: serialConfig.baudRate });
 const logFile = fs.createWriteStream('log.txt', { flags: 'a' });
 port.on('error', (err) => {
     console.log('Error: ', err.message);
@@ -16,6 +16,22 @@ const parser = port.pipe(new DelimiterParser({ delimiter: '\n' }));
 parser.on('data', (data) => {
     handleChunk(data.toString());
 });
+
+const onclose = () => {
+    //retry every 5 seconds
+    setTimeout(() => {
+        port.open((err) => {
+            if (err) {
+                console.log('Error: ', err.message);
+                onclose();
+            }
+        });
+
+    }, 5000);
+
+};
+
+port.on('close', onclose );
 
 //requests
 const handleChunk = (data: string) => {
