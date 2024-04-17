@@ -28,7 +28,11 @@ export const messagesModel:ModelAttributes = {
     },
     sk: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
+    },
+    sensorID: {
+        type: DataTypes.STRING,
+        allowNull: true,
     },
 };
 
@@ -40,14 +44,18 @@ export interface MessageEntry {
     type: 'MESSAGE' | 'MEASUREMENT';
     data: string;
     sk: string|null;
+    sensorID: string|null;
+
 }
 
 export interface Message extends MessageEntry {
     type: 'MESSAGE';
     sk: null;
+    sensorID: null;
 }
 
 export interface Measurement extends MessageEntry {
     type: 'MEASUREMENT';
     sk: string;
+    sensorID: string;
 }
