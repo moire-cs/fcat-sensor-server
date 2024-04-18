@@ -1,7 +1,11 @@
-import { UUIDV4 } from 'sequelize';
-import { messagesDB } from '../models/db.index';
+import { messagesDB, nodesDB, plotsDB, sensorsDB } from '../models/db.index';
 import { Message, Measurement } from '../models/messages.model';
 import { RequestHandler } from 'express';
+import { serialConfig } from '../config/serial.config';
+import { Node } from '../models/nodes.model';
+import { Sensor } from '../models/sensors.model';
+import Equation from 'equations';
+import { v4 } from 'uuid';
 
 export const getMessages: RequestHandler = async (req, res) => {
     try {
@@ -61,6 +65,43 @@ export const getLastMeasurements: RequestHandler = async (req, res) => {
     }
 };
 
+//this is the dashboard endpoint! includes all we need to display the dashboard
+export const getEachNodeLastMeasurements: RequestHandler = async (req, res) => {
+    try {
+        const nodes = await nodesDB.findAll().then((nodes) => nodes.map((node) => {
+            const jsonNode:Node = node.toJSON();
+            return jsonNode;
+        })) as Node[];
+        const plots = await plotsDB.findAll().then((plots) => plots.map((plot) => plot.toJSON()));
+        const sensors = await sensorsDB.findAll().then((sensors) => sensors.map((sensor) => sensor.toJSON() as Sensor));
+        const numSensors = sensors.length;
+        const measurements = await Promise.all(nodes.map(async (node) => {
+            const lastMeasurements = await messagesDB.findAll({
+                where: { type: 'MEASUREMENT', nodeID: node.id },
+                limit: numSensors,
+                order: [['time', 'DESC']],
+            }).then((measurements) => measurements.map((measurements) => {
+                const jsonMeasurements:Measurement = measurements.toJSON() as Measurement;
+                return jsonMeasurements;
+            })) as Measurement[];
+            return { node, lastMeasurements };
+        }));
+        //purge repeated sensor measurements
+        const uniqueMeasurements = measurements.map((measurement) => {
+            const uniqueMeasurements = measurement.lastMeasurements.reduce((acc, measurement) => {
+                if (!acc[measurement.sensorID]){
+                    acc[measurement.sensorID] = measurement;
+                }
+                return acc;
+            }, {} as {[key: string]: Measurement});
+            return { node: measurement.node, lastMeasurements: Object.values(uniqueMeasurements) };
+        });
+        res.status(200).json({ nodes: uniqueMeasurements, sensors, plots });
+    } catch (e) {
+        res.status(500).json({ message: e });
+    }
+};
+
 export const getMessage: RequestHandler = async (req, res) => {
     try {
         const messageID = req.params.id;
@@ -107,44 +148,74 @@ export const getMeasurementsByID: RequestHandler = async (req, res) => {
     }
 };
 
-interface CreateMessageBody {
-    message:Partial<Message>
+type SerialMessageBody ={
+	password:string;
+	nodeId: number;
+	times: Array<number>; //epoch time, (time since 1970)
+	sensors: Array<number>; // array of sensor ids for messages sent in this message (can be multiple messages)
+	messages:Array<Array<number>>; // array of messages for sensors, eg [[1,2,3,4],[1,2,3,4]]
 }
-
-export const createMessage: RequestHandler = async (req, res) => {
-    try {
-        const createMessageBody:CreateMessageBody = req.body;
-
-        await messagesDB.create({
-            ...createMessageBody.message,
-            id: createMessageBody.message.id ? UUIDV4() : null,
-        });
-
-        const message = await messagesDB.findOne({ where: { name: createMessageBody.message.id, type: 'MESSAGE' } }).then((message) => message?.toJSON()) as Message;
-
-        res.status(201).json({ message });
-    } catch (e) {
-        res.status(500).json({ message: e });
+export const createSerialMessage: RequestHandler = async (req, res) => {
+    const body:SerialMessageBody = req.body;
+    const { password, nodeId, times, sensors, messages } = body;
+    if (password !== serialConfig.password){
+        res.status(401).json({ message: 'Unauthorized' });
+        return;
     }
-};
-
-interface CreateMeasurementBody {
-    measurement:Partial<Measurement>
-}
-
-export const createMeasurement: RequestHandler = async (req, res) => {
+    if (!nodeId || !times || !sensors || !messages){
+        res.status(400).json({ message: 'Missing required fields!' });
+        return;
+    }
+    if (times.length !== sensors.length || times.length !== messages.length){
+        res.status(400).json({ message: 'Invalid message!' });
+        return;
+    }
     try {
-        const createMeasurementBody:CreateMeasurementBody = req.body;
 
-        await messagesDB.create({
-            ...createMeasurementBody.measurement,
-            id: createMeasurementBody.measurement.id ? UUIDV4() : null,
-        });
+        const nodeID = nodeId.toString();
+        const Node = await nodesDB.findOne({ where: { id: nodeID } }).then((node) => node?.toJSON() as Node);
+        if (!Node){
+            res.status(400).json({ message: 'Node not found!' });
+            return;
+        }
+        const plotID = Node.plotID;
+        if (!plotID){
+            res.status(400).json({ message: 'Node not assigned to a plot!' });
+            return;
+        }
+        const messagesArray = messages.map((message, index) => message.map((msg) => ({
+            id: v4(),
+            nodeID: nodeID,
+            plotID: plotID,
+            time: new Date(times[index]),
+            type: 'MESSAGE',
+            data: msg.toString(),
+            sk: null,
+            sensorID: null,
+        })));
+        await messagesDB.bulkCreate(messagesArray.flat());
+        const lastCreatedMessages = await messagesDB.findAll({ where: { nodeID: nodeID, type: 'MESSAGE' }, order: [['time', 'DESC']], limit: messagesArray.length }).then((messages) => messages.map((message) => message.toJSON() as Message));
 
-        const measurement = await messagesDB.findOne({ where: { name: createMeasurementBody.measurement.id, type: 'MEASUREMENT' } }).then((measurement) => measurement?.toJSON()) as Measurement;
+        const sensorsByIdMap = await sensorsDB.findAll({ where: { id: sensors } }).then((sensors) => sensors.reduce((acc, _sensor) => {
+            const sensor = _sensor.toJSON() as Sensor;
+            acc[sensor.id] = sensor;
+            return acc;
+        }, {} as {[key: number]: Sensor}));
 
-        res.status(201).json({ measurement });
-    } catch (e) {
+        const measurementsArray = sensors.map((sensor, index) => messages.map((message) => ({
+            id: v4(),
+            nodeID: nodeID,
+            plotID: plotID,
+            time: new Date(times[index]),
+            type: 'MEASUREMENT',
+            data: Equation.equation(sensorsByIdMap[sensor].transformEq)(message[index]),
+            sk: lastCreatedMessages[index].id,
+            sensorID: sensor.toString(),
+        })));
+        await messagesDB.bulkCreate(measurementsArray.flat());
+        res.status(200).json({ message: 'Messages created successfully!' });
+    }
+    catch (e){
         res.status(500).json({ message: e });
     }
 };
