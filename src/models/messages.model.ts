@@ -18,36 +18,44 @@ export const messagesModel:ModelAttributes = {
         type: DataTypes.DATE(3),
         allowNull: false,
     },
-    battery: {
-        type: DataTypes.DOUBLE,
+    type: {
+        type: DataTypes.STRING,
         allowNull: false,
     },
-    soilConductivity: {
-        type: DataTypes.DOUBLE,
+    data: {
+        type: DataTypes.STRING,
         allowNull: false,
     },
-    humidity: {
-        type: DataTypes.DOUBLE,
-        allowNull: false,
+    sk: {
+        type: DataTypes.STRING,
+        allowNull: true,
     },
-    temperature: {
-        type: DataTypes.DOUBLE,
-        allowNull: false,
-    },
-    sunlight: {
-        type: DataTypes.DOUBLE,
-        allowNull: false,
+    sensorID: {
+        type: DataTypes.STRING,
+        allowNull: true,
     },
 };
 
-export type Message = {
-    id: string,
-    nodeID: string,
-    plotID: string,
-    time: Date,
-    battery: number,
-    soilConductivity: number,
-    humidity: number,
-    temperature: number,
-    sunlight: number,
+export interface MessageEntry {
+    id: string;
+    nodeID: string;
+    plotID: string;
+    time: Date;
+    type: 'MESSAGE' | 'MEASUREMENT';
+    data: string;
+    sk: string|null;
+    sensorID: string|null;
+
+}
+
+export interface Message extends MessageEntry {
+    type: 'MESSAGE';
+    sk: null;
+    sensorID: null;
+}
+
+export interface Measurement extends MessageEntry {
+    type: 'MEASUREMENT';
+    sk: string;
+    sensorID: string;
 }
