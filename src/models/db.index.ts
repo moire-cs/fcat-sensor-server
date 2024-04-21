@@ -6,6 +6,7 @@ import { messagesModel } from './messages.model';
 import { usersModel } from './users.model';
 import { plotsModel } from './plots.model';
 import { sessionsModel } from './sessions.model';
+import { sensorsModel } from './sensors.model';
 
 export const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
     host: dbConfig.HOST,
@@ -24,3 +25,4 @@ export const messagesDB = sequelize.define('messages', messagesModel);
 export const logDB = sequelize.define('log', logModel);
 export const plotsDB = sequelize.define('plots', plotsModel);
 export const sessionsDB = sequelize.define('sessions', sessionsModel);
+export const sensorsDB = sequelize.define('sensors', sensorsModel);

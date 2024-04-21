@@ -1,6 +1,7 @@
 import { UUIDV4 } from 'sequelize';
-import { plotsDB } from '../models/db.index';
+import { plotsDB, nodesDB } from '../models/db.index';
 import { Plot } from '../models/plots.model';
+import { Node } from '../models/nodes.model';
 import { RequestHandler } from 'express';
 
 export const getPlots: RequestHandler = async (req, res) => {
@@ -37,7 +38,7 @@ export const getPlot: RequestHandler = async (req, res) => {
 };
 
 interface CreatePlotBody {
-    plot:Partial<Plot>;
+    plot:Omit<Partial<Plot>, 'id'>;
 }
 
 export const createPlot: RequestHandler = async (req, res) => {
@@ -46,8 +47,23 @@ export const createPlot: RequestHandler = async (req, res) => {
         const thisID = UUIDV4();
         await plotsDB.create({
             ...createPlotBody.plot,
-            id: createPlotBody.plot.id ? thisID : null,
+            id: thisID,
         });
+        if (createPlotBody.plot.nodeID) {
+            const node = await nodesDB.findOne({ where: { id: createPlotBody.plot.nodeID } }).then((node) => {
+                const jsonNode:Node|undefined = node?.toJSON();
+                return jsonNode;
+            });
+            if (node) {
+                await nodesDB.update({
+                    plotID: thisID,
+                }, { where: { id: createPlotBody.plot.nodeID },
+                });
+            } else {
+                res.status(400).json({ message: 'Node not found' });
+                return;
+            }
+        }
         const plot = await plotsDB.findOne({ where: { name: thisID } }).then((plot) => plot?.toJSON()) as Plot;
         res.status(200).json({ plot });
     } catch (e) {
@@ -101,6 +117,10 @@ export const deletePlot: RequestHandler = async (req, res) => {
             return;
         }
         await plotsDB.destroy({ where: { id: id } });
+        await nodesDB.update({
+            plotID: null,
+        }, { where: { id: plot.nodeID },
+        });
         res.status(200).json({ message: 'Plot deleted' });
     } catch (e) {
         res.status(500).json({ message: e });
