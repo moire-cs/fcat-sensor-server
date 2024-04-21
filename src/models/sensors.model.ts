@@ -2,9 +2,9 @@ import { ModelAttributes, DataTypes } from 'sequelize';
 
 export const sensorsModel:ModelAttributes = {
     id: {
-        type: DataTypes.STRING,
+        type: DataTypes.NUMBER,
         primaryKey: true,
-        defaultValue: DataTypes.UUIDV4,
+        defaultValue: DataTypes.NUMBER,
     },
     name: {
         type: DataTypes.STRING,
@@ -31,8 +31,8 @@ export const sensorsModel:ModelAttributes = {
 export type Sensor = {
     id: number;
 	name: string;
-	description: string;
+	description?: string;
 	length: number;
 	transformEq: string;
-	typicalRange:[number,number]
+	typicalRange?:[number,number];
 }
