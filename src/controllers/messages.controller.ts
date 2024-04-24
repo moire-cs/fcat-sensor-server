@@ -4,8 +4,8 @@ import { RequestHandler } from 'express';
 import { serialConfig } from '../config/serial.config';
 import { Node } from '../models/nodes.model';
 import { Sensor } from '../models/sensors.model';
-import Equation from 'equations';
 import { v4 } from 'uuid';
+import { parser } from 'mathjs';
 
 export const getMessages: RequestHandler = async (req, res) => {
     try {
@@ -74,12 +74,11 @@ export const getEachNodeLastMeasurements: RequestHandler = async (req, res) => {
         })) as Node[];
         const plots = await plotsDB.findAll().then((plots) => plots.map((plot) => plot.toJSON()));
         const sensors = await sensorsDB.findAll().then((sensors) => sensors.map((sensor) => sensor.toJSON() as Sensor));
-        const numSensors = sensors.length;
         const measurements = await Promise.all(nodes.map(async (node) => {
             const lastMeasurements = await messagesDB.findAll({
                 where: { type: 'MEASUREMENT', nodeID: node.id },
-                limit: numSensors,
-                order: [['time', 'DESC']],
+                limit: 20,
+                order: [['createdAt', 'DESC']],
             }).then((measurements) => measurements.map((measurements) => {
                 const jsonMeasurements:Measurement = measurements.toJSON() as Measurement;
                 return jsonMeasurements;
@@ -162,16 +161,16 @@ export const createSerialMessage: RequestHandler = async (req, res) => {
         res.status(401).json({ message: 'Unauthorized' });
         return;
     }
-    if (!nodeId || !times || !sensors || !messages){
+    if ( !nodeId || !times || !sensors || !messages){
         res.status(400).json({ message: 'Missing required fields!' });
         return;
     }
-    if (times.length !== sensors.length || times.length !== messages.length){
+    if ( times.length !== messages.length){
         res.status(400).json({ message: 'Invalid message!' });
         return;
     }
     try {
-
+        const mathParser = parser();
         const nodeID = nodeId.toString();
         const Node = await nodesDB.findOne({ where: { id: nodeID } }).then((node) => node?.toJSON() as Node);
         if (!Node){
@@ -183,40 +182,64 @@ export const createSerialMessage: RequestHandler = async (req, res) => {
             res.status(400).json({ message: 'Node not assigned to a plot!' });
             return;
         }
-        const messagesArray = messages.map((message, index) => message.map((msg) => ({
-            id: v4(),
-            nodeID: nodeID,
-            plotID: plotID,
-            time: new Date(times[index]),
-            type: 'MESSAGE',
-            data: msg.toString(),
-            sk: null,
-            sensorID: null,
-        })));
-        await messagesDB.bulkCreate(messagesArray.flat());
-        const lastCreatedMessages = await messagesDB.findAll({ where: { nodeID: nodeID, type: 'MESSAGE' }, order: [['time', 'DESC']], limit: messagesArray.length }).then((messages) => messages.map((message) => message.toJSON() as Message));
+        const messagesArray = messages.map((message, index) =>
+            ({
+                id: v4(),
+                nodeID: nodeID,
+                plotID: plotID,
+                time: new Date(times[index]),
+                type: 'MESSAGE',
+                data: message.toString(),
+                sk: null,
+                sensorID: sensors.toString(),
+            }));
 
+        await messagesDB.bulkCreate(messagesArray);
+
+        const lastCreatedMessages = await messagesDB.findAll({ where: { nodeID: nodeID, type: 'MESSAGE' }, order: [['time', 'DESC']], limit: messagesArray.length }).then((messages) => messages.map((message) => message.toJSON() as Message));
         const sensorsByIdMap = await sensorsDB.findAll({ where: { id: sensors } }).then((sensors) => sensors.reduce((acc, _sensor) => {
             const sensor = _sensor.toJSON() as Sensor;
             acc[sensor.id] = sensor;
             return acc;
         }, {} as {[key: number]: Sensor}));
 
-        const measurementsArray = sensors.map((sensor, index) => messages.map((message) => ({
-            id: v4(),
-            nodeID: nodeID,
-            plotID: plotID,
-            time: new Date(times[index]),
-            type: 'MEASUREMENT',
-            data: Equation.equation(sensorsByIdMap[sensor].transformEq)(message[index]),
-            sk: lastCreatedMessages[index].id,
-            sensorID: sensor.toString(),
-        })));
-        await messagesDB.bulkCreate(measurementsArray.flat());
+        const measurementsArray = Array<Measurement>();
+        messages.forEach((message, index) => {
+            sensors.forEach((sensorID) => {
+                const sensor = sensorsByIdMap[sensorID];
+                if (!sensor){
+                    return;
+                }
+                const measurementData = message[sensorID];
+                if (!measurementData){
+                    return;
+                }
+                mathParser.set('x', measurementData);
+                const transformedData = mathParser.evaluate(sensor.transformEq);
+                const measurementEntry = {
+                    id: v4(),
+                    nodeID: nodeID,
+                    plotID: plotID,
+                    time: new Date(times[index]),
+                    type: 'MEASUREMENT',
+                    data: transformedData.toString(),
+                    sk: lastCreatedMessages[index].id,
+                    sensorID: sensorID.toString(),
+                } as Measurement;
+                measurementsArray.push(measurementEntry);
+            });
+        });
+        if (measurementsArray.length > 0){
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await messagesDB.bulkCreate(measurementsArray as any);
+        }
+
         res.status(200).json({ message: 'Messages created successfully!' });
     }
     catch (e){
         res.status(500).json({ message: e });
+        console.log(e);
+
     }
 };
 
