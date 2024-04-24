@@ -1,4 +1,3 @@
-import { UUIDV4 } from 'sequelize';
 import { sensorsDB } from '../models/db.index';
 import { Sensor } from '../models/sensors.model';
 import { RequestHandler } from 'express';
@@ -36,20 +35,29 @@ export const getSensor: RequestHandler = async (req, res) => {
     }
 };
 
-interface CreateSensorBody {
-    sensor:Partial<Sensor>;
+interface CreateSensorBody extends Sensor {
+        id: number;
+        name: string;
+        description?: string;
+        length: number;
+        transformEq: string;
+        typicalRange?:[number,number];
 }
 
 export const createSensor: RequestHandler = async (req, res) => {
     try {
         const createSensorBody:CreateSensorBody = req.body;
-        const thisID = UUIDV4();
-        await sensorsDB.create({
-            ...createSensorBody.sensor,
-            id: createSensorBody.sensor.id ? thisID : null,
-        });
-        const sensor = await sensorsDB.findOne({ where: { name: thisID } }).then((sensor) => sensor?.toJSON()) as Sensor;
-        res.status(200).json({ sensor });
+        if (createSensorBody.id && createSensorBody.name && createSensorBody.length && createSensorBody.transformEq) {
+            await sensorsDB.create({
+                ...createSensorBody,
+            });
+            const sensor = await sensorsDB.findOne({ where: { id: createSensorBody.id } }).then((sensor) => sensor?.toJSON()) as Sensor;
+            res.status(200).json({ sensor });
+            return;
+        } else {
+            res.status(400).json({ message: 'Sensor missing required fields!' });
+            return;
+        }
     } catch (e) {
         res.status(500).json({ message: e });
     }
