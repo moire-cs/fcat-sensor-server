@@ -47,6 +47,10 @@ const handleChunk = (data: string) => {
         case 'MESSAGE':
             handleNewMessage(request);
             break;
+        case 'CYCLE':
+            console.log('Cycle request');
+            handleCycleRequest();
+            break;
         default:
             console.log('Unknown request type: ' + dataString);
         }
@@ -87,3 +91,10 @@ const handleNewMessage = (message: string|null) => {
     }
 };
 
+const handleCycleRequest = () =>
+    axios.get(`http://localhost:${PORT}/api/cycle`).then((response) => {
+        console.log('Cycle request response: ', response.data);
+        port.write(`CYCLE: ${JSON.stringify(response.data)} \n`);
+    }).catch((error) => {
+        console.log('Error: ', error);
+    });
