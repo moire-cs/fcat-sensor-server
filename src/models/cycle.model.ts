@@ -13,20 +13,16 @@ export const cycleModel:ModelAttributes = {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
-    syncTimeTolerance: {
-        type: DataTypes.INTEGER,
+    gateTolerance: {
+        type: DataTypes.NUMBER,
         allowNull: false,
     },
-    meshTimeTolerance: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
+
 };
 
 export type CycleEntry = {
     id: string;
     duration: number;
     numMessages: number;
-    syncTimeTolerance: number;
-    meshTimeTolerance: number;
+    gateTolerance: number;
 }

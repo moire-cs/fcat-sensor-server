@@ -18,6 +18,7 @@ export const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASS
         acquire: dbConfig.pool.acquire,
         idle: dbConfig.pool.idle,
     },
+    logging: false,
 });
 
 export const usersDB = sequelize.define('users', usersModel);

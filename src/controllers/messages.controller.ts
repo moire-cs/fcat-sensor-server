@@ -161,7 +161,7 @@ export const createSerialMessage: RequestHandler = async (req, res) => {
         res.status(401).json({ message: 'Unauthorized' });
         return;
     }
-    if ( !nodeId || !times || !sensors || !messages){
+    if ( nodeId === undefined || times === undefined || sensors === undefined || messages === undefined){
         res.status(400).json({ message: 'Missing required fields!' });
         return;
     }

@@ -2,6 +2,7 @@ import { SerialPort } from 'serialport';
 import { serialConfig } from './src/config/serial.config';
 import { DelimiterParser } from '@serialport/parser-delimiter';
 import axios from 'axios';
+import { CycleEntry } from './src/models/cycle.model';
 const PORT = 8080;
 const port = new SerialPort({ path: `${serialConfig.port}`, baudRate: serialConfig.baudRate });
 port.on('error', (err) => {
@@ -94,7 +95,13 @@ const handleNewMessage = (message: string|null) => {
 const handleCycleRequest = () =>
     axios.get(`http://localhost:${PORT}/api/cycle`).then((response) => {
         console.log('Cycle request response: ', response.data);
-        port.write(`CYCLE: ${JSON.stringify(response.data)} \n`);
+        const cycle = response.data as CycleEntry;
+        // “{duration in hours}, {numMessages}, {gateTolerance}, {epoch time (seconds since 1970)}\n”
+        port.write(`${cycle.duration / 3600}, ${cycle.numMessages}, ${cycle.gateTolerance}, ${new Date().getTime() / 1000}\n`, (err) => {
+            if (err) {
+                console.log('Error: ', err.message);
+            }
+        });
     }).catch((error) => {
         console.log('Error: ', error);
     });

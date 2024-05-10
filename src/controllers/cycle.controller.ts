@@ -6,8 +6,7 @@ const DefaultCycle: CycleEntry = {
     id: '0',
     duration: 3600,//seconds
     numMessages: 5,
-    syncTimeTolerance: 300,
-    meshTimeTolerance: 300,
+    gateTolerance: .005,
 };
 
 export const getCycle: RequestHandler = async (req, res) => {
@@ -18,12 +17,7 @@ export const getCycle: RequestHandler = async (req, res) => {
         res.status(200).json(DefaultCycle);
     }
 };
-type CycleUpdate = {
-    duration?: number;
-    numMessages?: number;
-    syncTimeTolerance?: number;
-    meshTimeTolerance?: number;
-};
+type CycleUpdate = Partial<Omit<CycleEntry, 'id'>>;
 export const updateCycle: RequestHandler = async (req, res) => {
     const cycle = req.body as CycleUpdate;
     const existingCycle = await cycleDB.findOne({ where: { id: 0 } }).then((cycle) => { if (cycle) return cycle.toJSON() as CycleEntry; });

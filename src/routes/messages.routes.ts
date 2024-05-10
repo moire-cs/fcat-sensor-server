@@ -9,7 +9,7 @@ export const useMessageRoutes = (router:Express) => {
     router.get(URL_BASE + '/messages', AUTH, messagesController.getMessages);
     router.get(URL_BASE + '/messages/:id', AUTH, messagesController.getMessage);
     router.post(URL_BASE + '/messages/', messagesController.createSerialMessage);
-    router.get(URL_BASE + '/measurements/latest', AUTH, messagesController.getEachNodeLastMeasurements);
+    router.get(URL_BASE + '/measurements/latest', messagesController.getEachNodeLastMeasurements);
     router.get(URL_BASE + '/messages/:nodeID', AUTH, messagesController.findMessagesByNodeID);
     router.get(URL_BASE + '/messages/:plotID', AUTH, messagesController.findMessagesByPlotID);
     router.get(URL_BASE + '/messages/last/:numMsgs?', AUTH, messagesController.getLastMessages);
