@@ -6,7 +6,7 @@ export const cycleModel:ModelAttributes = {
         primaryKey: true,
     },
     duration: {
-        type: DataTypes.NUMBER,
+        type: DataTypes.INTEGER,
         allowNull: false,
     },
     numMessages: {
@@ -14,7 +14,7 @@ export const cycleModel:ModelAttributes = {
         allowNull: false,
     },
     gateTolerance: {
-        type: DataTypes.NUMBER,
+        type: DataTypes.DOUBLE,
         allowNull: false,
     },
 

@@ -4,9 +4,9 @@ import { CycleEntry } from '../models/cycle.model';
 
 const DefaultCycle: CycleEntry = {
     id: '0',
-    duration: 3600,//seconds
-    numMessages: 5,
-    gateTolerance: .005,
+    duration: 120,//seconds
+    numMessages: 1,
+    gateTolerance: .008,
 };
 
 export const getCycle: RequestHandler = async (req, res) => {

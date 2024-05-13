@@ -2,9 +2,8 @@ import { ModelAttributes, DataTypes } from 'sequelize';
 
 export const sensorsModel:ModelAttributes = {
     id: {
-        type: DataTypes.NUMBER,
+        type: DataTypes.INTEGER,
         primaryKey: true,
-        defaultValue: DataTypes.NUMBER,
     },
     name: {
         type: DataTypes.STRING,

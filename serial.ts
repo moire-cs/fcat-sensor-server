@@ -3,22 +3,41 @@ import { serialConfig } from './src/config/serial.config';
 import { DelimiterParser } from '@serialport/parser-delimiter';
 import axios from 'axios';
 import { CycleEntry } from './src/models/cycle.model';
+
+//wait for the server to start
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const PORT = 8080;
-const port = new SerialPort({ path: `${serialConfig.port}`, baudRate: serialConfig.baudRate });
-port.on('error', (err) => {
-    console.log('Error: ', err.message);
-    onclose();
-});
-port.on('open', () => {
-    console.log(`Serial port ${serialConfig.port} is open at ${serialConfig.baudRate} baud rate.`);
-});
-// example line: 'MESSAGE: { "nodeId": number, "time": number, "sensors": Array<number> messages:Array<Array<number>>}  \n}
-const parser = port.pipe(new DelimiterParser({ delimiter: '\n' }));
-parser.on('data', (data) => {
-    handleChunk(data.toString());
-});
+let port: SerialPort;
+const waitForServer = async () => {
+    let serverUp = false;
+    while (!serverUp) {
+        try {
+            await axios.get(`http://localhost:${PORT}/api/cycle`);
+            serverUp = true;
+            console.log('Server is up');
+        } catch (error) {
+            await wait(5000);
+        }
+    }
+    port = new SerialPort({ path: `${serialConfig.port}`, baudRate: serialConfig.baudRate });
+    port.on('error', (err) => {
+        console.log('Error: ', err.message);
+        onclose();
+    });
+    port.on('open', () => {
+        console.log(`Serial port ${serialConfig.port} is open at ${serialConfig.baudRate} baud rate.`);
+    });
+    const parser = port.pipe(new DelimiterParser({ delimiter: '\n' }));
+    parser.on('data', (data) => {
+        handleChunk(data.toString());
+    });
+    port.on('close', onclose );
+};
+waitForServer();
 
 const onclose = () => {
+    console.log('BACKEND: Serial port closed');
     //retry every 5 seconds
     setTimeout(() => {
         port.open((err) => {
@@ -32,12 +51,11 @@ const onclose = () => {
 
 };
 
-port.on('close', onclose );
-
 //requests
-const handleChunk = (data: string) => {
+const handleChunk = async (data: string) => {
 
     try {
+
         const dataString = data.toString();
         console.log(dataString);
 
@@ -49,11 +67,11 @@ const handleChunk = (data: string) => {
             handleNewMessage(request);
             break;
         case 'CYCLE':
-            console.log('Cycle request');
+            console.log('BACKEND: Cycle request');
             handleCycleRequest();
             break;
         default:
-            console.log('Unknown request type: ' + dataString);
+            // console.log('Unknown request type: ' + dataString);
         }
 
     }
@@ -69,7 +87,7 @@ type SerialMessageResponse = {
 }
 const handleNewMessage = (message: string|null) => {
     if (message) {
-        console.log('New message: ', message);
+        console.log('BACKEND: New message: ', message);
         const messageObjectBody = JSON.parse(message);
         const parsedBody = {
             password: serialConfig.password,
@@ -78,13 +96,17 @@ const handleNewMessage = (message: string|null) => {
             sensors: messageObjectBody.sensors,
             messages: messageObjectBody.messages,
         };
-        console.log('Parsed message: ', parsedBody);
+        if (parsedBody.messages.length === 0) {
+            console.log('BACKEND: Empty message');
+            return;
+        }
+        console.log('BACKEND: Parsed message: ', parsedBody);
         //send message to server
         axios.post(`http://localhost:${PORT}/api/messages`, parsedBody).then((response) => {
             const responseData: SerialMessageResponse = response.data;
-            console.log('Messages saved with ids: ', responseData.messageId);
+            console.log('BACKEND: Messages saved with ids: ', responseData.messageId);
         }).catch((error) => {
-            console.log('Error: ', error);
+            console.log('BACKEND: Error: ', error);
         });
 
     } else {
@@ -94,14 +116,15 @@ const handleNewMessage = (message: string|null) => {
 
 const handleCycleRequest = () =>
     axios.get(`http://localhost:${PORT}/api/cycle`).then((response) => {
-        console.log('Cycle request response: ', response.data);
+        console.log('BACKEND: Cycle request response: ', response.data);
         const cycle = response.data as CycleEntry;
         // “{duration in hours}, {numMessages}, {gateTolerance}, {epoch time (seconds since 1970)}\n”
         port.write(`${cycle.duration / 3600}, ${cycle.numMessages}, ${cycle.gateTolerance}, ${new Date().getTime() / 1000}\n`, (err) => {
             if (err) {
-                console.log('Error: ', err.message);
+                console.log('BACKEND: Error: ', err.message);
             }
         });
+        console.log('BACKEND: Cycle request sent');
     }).catch((error) => {
-        console.log('Error: ', error);
+        console.log('BACKEND: Error: ', error);
     });
