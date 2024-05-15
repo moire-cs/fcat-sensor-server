@@ -5,7 +5,8 @@ import { CycleEntry } from '../models/cycle.model';
 const DefaultCycle: CycleEntry = {
     id: '0',
     duration: 120,//seconds
-    numMessages: 1,
+    numMessages: 1,  // TODO: MAX 14
+    syncDuration: 30,//seconds
     gateTolerance: .008,
 };
 

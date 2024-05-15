@@ -13,6 +13,10 @@ export const cycleModel:ModelAttributes = {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    syncDuration: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
     gateTolerance: {
         type: DataTypes.DOUBLE,
         allowNull: false,
@@ -24,5 +28,6 @@ export type CycleEntry = {
     id: string;
     duration: number;
     numMessages: number;
+    syncDuration: number;
     gateTolerance: number;
 }

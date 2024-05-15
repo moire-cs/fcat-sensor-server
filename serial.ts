@@ -119,7 +119,7 @@ const handleCycleRequest = () =>
         console.log('BACKEND: Cycle request response: ', response.data);
         const cycle = response.data as CycleEntry;
         // “{duration in hours}, {numMessages}, {gateTolerance}, {epoch time (seconds since 1970)}\n”
-        port.write(`${cycle.duration / 3600}, ${cycle.numMessages}, ${cycle.gateTolerance}, ${new Date().getTime() / 1000}\n`, (err) => {
+        port.write(`${cycle.duration / 3600}, ${cycle.numMessages}, ${cycle.gateTolerance}, ${cycle.syncDuration}, ${new Date().getTime() / 1000}\n`, (err) => {
             if (err) {
                 console.log('BACKEND: Error: ', err.message);
             }
