@@ -4,6 +4,7 @@ import { sequelize } from './src/models/db.index';
 import { useMessageRoutes } from './src/routes/messages.routes';
 import { useUserRoutes } from './src/routes/users.routes';
 import { useCycleRoutes } from './src/routes/cycle.routes';
+import { usePlotRoutes } from './src/routes/plots.routes';  // 新增
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use(express.urlencoded({ extended: true }));
 useMessageRoutes(app);
 useUserRoutes(app);
 useCycleRoutes(app);
+usePlotRoutes(app);
 
 const PORT = process.env.PORT || 8080;
 

@@ -9,6 +9,7 @@ import { sessionsModel } from './sessions.model';
 import { sensorsModel } from './sensors.model';
 import { cycleModel } from './cycle.model';
 
+
 export const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
     host: dbConfig.HOST,
     dialect: dbConfig.dialect as Dialect,

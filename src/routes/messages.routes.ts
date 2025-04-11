@@ -17,5 +17,6 @@ export const useMessageRoutes = (router:Express) => {
     router.get(URL_BASE + '/measurements/last/:numMsgs?', AUTH, messagesController.getLastMeasurements);
     router.get(URL_BASE + '/measurements/:id', AUTH, messagesController.getMeasurementsByID);
     router.get(URL_BASE + '/measurements/:nodeID', AUTH, messagesController.findMeasurementsByNodeID);
-    router.get(URL_BASE + '/measurements/:plotID', AUTH, messagesController.findMeasurementsByPlotID);
+    router.get(URL_BASE + '/measurements/byPlot/:plotID', messagesController.findMeasurementsByPlotID);
+    router.get(URL_BASE + '/messages/byPlot/:plotID', messagesController.findMessagesByPlotID);
 };

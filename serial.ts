@@ -34,7 +34,7 @@ const waitForServer = async () => {
     });
     port.on('close', onclose );
 };
-waitForServer();
+// waitForServer();
 
 const onclose = () => {
     console.log('BACKEND: Serial port closed');
