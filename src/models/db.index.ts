@@ -6,6 +6,9 @@ import { messagesModel } from './messages.model';
 import { usersModel } from './users.model';
 import { plotsModel } from './plots.model';
 import { sessionsModel } from './sessions.model';
+import { sensorsModel } from './sensors.model';
+import { cycleModel } from './cycle.model';
+
 
 export const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
     host: dbConfig.HOST,
@@ -16,6 +19,7 @@ export const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASS
         acquire: dbConfig.pool.acquire,
         idle: dbConfig.pool.idle,
     },
+    logging: false,
 });
 
 export const usersDB = sequelize.define('users', usersModel);
@@ -24,3 +28,5 @@ export const messagesDB = sequelize.define('messages', messagesModel);
 export const logDB = sequelize.define('log', logModel);
 export const plotsDB = sequelize.define('plots', plotsModel);
 export const sessionsDB = sequelize.define('sessions', sessionsModel);
+export const sensorsDB = sequelize.define('sensors', sensorsModel);
+export const cycleDB = sequelize.define('cycle', cycleModel);
