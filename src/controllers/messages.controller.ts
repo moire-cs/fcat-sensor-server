@@ -149,7 +149,7 @@ export const getMeasurementsByID: RequestHandler = async (req, res) => {
 
 type SerialMessageBody ={
 	password:string;
-	nodeId: number;
+	nodeId: string;
 	times: Array<number>; //epoch time, (time since 1970)
 	sensors: Array<number>; // array of sensor ids for messages sent in this message (can be multiple messages)
 	messages:Array<Array<number>>; // array of messages for sensors, eg [[1,2,3,4],[1,2,3,4]]

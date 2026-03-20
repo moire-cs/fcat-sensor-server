@@ -1,14 +1,18 @@
 import { SerialPort } from 'serialport';
-import { serialConfig } from './src/config/serial.config';
 import { DelimiterParser } from '@serialport/parser-delimiter';
 import axios from 'axios';
-import { CycleEntry } from './src/models/cycle.model';
 
-//wait for the server to start
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const PORT = 8080;
 let port: SerialPort;
+
+const serialConfig = {
+    port: process.env.SERIAL_PORT || '/dev/ttyUSB0',
+    baudRate: 115200,
+    password: 'RANDOM_GUID'
+};
+
 const waitForServer = async () => {
     let serverUp = false;
     while (!serverUp) {
@@ -17,10 +21,11 @@ const waitForServer = async () => {
             serverUp = true;
             console.log('Server is up');
         } catch (error) {
+            console.log('Waiting for server...');
             await wait(5000);
         }
     }
-    port = new SerialPort({ path: `${serialConfig.port}`, baudRate: serialConfig.baudRate });
+    port = new SerialPort({ path: serialConfig.port, baudRate: serialConfig.baudRate });
     port.on('error', (err) => {
         console.log('Error: ', err.message);
         onclose();
@@ -32,13 +37,13 @@ const waitForServer = async () => {
     parser.on('data', (data) => {
         handleChunk(data.toString());
     });
-    port.on('close', onclose );
+    port.on('close', onclose);
 };
+
 waitForServer();
 
 const onclose = () => {
-    console.log('BACKEND: Serial port closed');
-    //retry every 5 seconds
+    console.log('BACKEND: Serial port closed, retrying in 5 seconds...');
     setTimeout(() => {
         port.open((err) => {
             if (err) {
@@ -46,85 +51,51 @@ const onclose = () => {
                 onclose();
             }
         });
-
     }, 5000);
-
 };
 
-//requests
+// Parse: MOIRE,7962B275,22.62,68.40,30.07,10157,3.85
+// Format: MOIRE,ID,temp,humidity,lux,pulse,battery
 const handleChunk = async (data: string) => {
-
     try {
+        const line = data.trim();
+        console.log('Received:', line);
 
-        const dataString = data.toString();
-        console.log(dataString);
+        if (!line.startsWith('MOIRE,')) return;
 
-        const requestType = dataString.split(':')[0];
-        const delimIndex =  dataString.indexOf(':');
-        const request = dataString.length > 1 ? dataString.substring(delimIndex + 1) : null;
-        switch (requestType) {
-        case 'MESSAGE':
-            handleNewMessage(request);
-            break;
-        case 'CYCLE':
-            console.log('BACKEND: Cycle request');
-            handleCycleRequest();
-            break;
-        default:
-            // console.log('Unknown request type: ' + dataString);
-        }
-
-    }
-    catch (error) {
-        console.log('Error: ', error);
-    }
-
-};
-
-type SerialMessageResponse = {
-	messageId:Array<string>;
-	message: 'Messages Saved'
-}
-const handleNewMessage = (message: string|null) => {
-    if (message) {
-        console.log('BACKEND: New message: ', message);
-        const messageObjectBody = JSON.parse(message);
-        const parsedBody = {
-            password: serialConfig.password,
-            nodeId: messageObjectBody.nodeId,
-            times: messageObjectBody.times,
-            sensors: messageObjectBody.sensors,
-            messages: messageObjectBody.messages,
-        };
-        if (parsedBody.messages.length === 0) {
-            console.log('BACKEND: Empty message');
+        const parts = line.split(',');
+        if (parts.length !== 7) {
+            console.log('Invalid MOIRE data:', line);
             return;
         }
-        console.log('BACKEND: Parsed message: ', parsedBody);
-        //send message to server
-        axios.post(`http://localhost:${PORT}/api/messages`, parsedBody).then((response) => {
-            const responseData: SerialMessageResponse = response.data;
-            console.log('BACKEND: Messages saved with ids: ', responseData.messageId);
-        }).catch((error) => {
-            console.log('BACKEND: Error: ', error);
-        });
 
-    } else {
-        console.log('Empty message');
+        const nodeId = parts[1];
+        const temp = parseFloat(parts[2]);
+        const humidity = parseFloat(parts[3]);
+        const lux = parseFloat(parts[4]);
+        const pulse = parseFloat(parts[5]);
+        const battery = parseFloat(parts[6]);
+
+        if (isNaN(temp) || isNaN(humidity) || isNaN(lux) || isNaN(pulse) || isNaN(battery)) {
+            console.log('Invalid sensor values:', line);
+            return;
+        }
+
+        const now = new Date().getTime() / 1000;
+
+        const payload = {
+            password: serialConfig.password,
+            nodeId: nodeId,
+            times: [now],
+            sensors: [1, 2, 3, 0, 4],
+            messages: [[temp, humidity, lux, pulse, battery]],
+        };
+
+        console.log('BACKEND: Sending payload:', payload);
+        await axios.post(`http://localhost:${PORT}/api/messages`, payload);
+        console.log('BACKEND: Data saved successfully');
+
+    } catch (error) {
+        console.log('Error handling chunk:', error);
     }
 };
-
-const handleCycleRequest = () =>
-    axios.get(`http://localhost:${PORT}/api/cycle`).then((response) => {
-        console.log('BACKEND: Cycle request response: ', response.data);
-        const cycle = response.data as CycleEntry;
-        // “{duration in hours}, {numMessages}, {gateTolerance}, {epoch time (seconds since 1970)}\n”
-        port.write(`${cycle.duration / 3600}, ${cycle.numMessages}, ${cycle.gateTolerance}, ${cycle.syncDuration}, ${new Date().getTime() / 1000}\n`, (err) => {
-            if (err) {
-                console.log('BACKEND: Error: ', err.message);
-            }
-        });
-        console.log('BACKEND: Cycle request sent');
-    }).catch((error) => {
-        console.log('BACKEND: Error: ', error);
-    });
