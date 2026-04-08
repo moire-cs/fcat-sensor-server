@@ -1,4 +1,3 @@
-import { UUIDV4 } from 'sequelize';
 import { plotsDB, nodesDB } from '../models/db.index';
 import { Plot } from '../models/plots.model';
 import { Node } from '../models/nodes.model';
@@ -38,13 +37,22 @@ export const getPlot: RequestHandler = async (req, res) => {
 };
 
 interface CreatePlotBody {
-    plot:Omit<Partial<Plot>, 'id'>;
+    plot:Partial<Plot>;
 }
 
 export const createPlot: RequestHandler = async (req, res) => {
     try {
         const createPlotBody:CreatePlotBody = req.body;
-        const thisID = UUIDV4();
+        let thisID = createPlotBody.plot.id;
+        if (!thisID) {
+            const allPlots = await plotsDB.findAll({ attributes: ['id'] }).then((plots) => plots.map((p) => p.toJSON() as Plot));
+            const existingIds = new Set(allPlots.map((p) => p.id));
+            let nextId = 0;
+            while (existingIds.has(nextId.toString())) {
+                nextId++;
+            }
+            thisID = nextId.toString();
+        }
         await plotsDB.create({
             ...createPlotBody.plot,
             id: thisID,
@@ -55,6 +63,10 @@ export const createPlot: RequestHandler = async (req, res) => {
                 return jsonNode;
             });
             if (node) {
+                // Clear the old plot's nodeID if the node was previously assigned
+                if (node.plotID) {
+                    await plotsDB.update({ nodeID: null }, { where: { id: node.plotID } });
+                }
                 await nodesDB.update({
                     plotID: thisID,
                 }, { where: { id: createPlotBody.plot.nodeID },
@@ -64,7 +76,7 @@ export const createPlot: RequestHandler = async (req, res) => {
                 return;
             }
         }
-        const plot = await plotsDB.findOne({ where: { name: thisID } }).then((plot) => plot?.toJSON()) as Plot;
+        const plot = await plotsDB.findOne({ where: { id: thisID } }).then((plot) => plot?.toJSON()) as Plot;
         res.status(200).json({ plot });
     } catch (e) {
         res.status(500).json({ message: e });

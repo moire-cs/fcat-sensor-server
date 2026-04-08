@@ -9,7 +9,7 @@ export const useNodeRoutes = (router:Express) => {
     router.get(URL_BASE, AUTH, nodesController.getNodes);
     router.get(URL_BASE + '/:nodeId', AUTH, nodesController.getNode);
     router.post(URL_BASE + '/', AUTH, nodesController.createNode);
-    router.patch(URL_BASE + '/updateNode/:id', AUTH, nodesController.updateNode);
-    router.delete(URL_BASE + '/deleteNode/:id', AUTH, nodesController.deleteNode);
+    router.patch(URL_BASE + '/updateNode/:id', nodesController.updateNode);
+    router.delete(URL_BASE + '/deleteNode/:id', nodesController.deleteNode);
     router.get(URL_BASE + '/:plotID', AUTH, nodesController.findNodeByPlotID);
 };

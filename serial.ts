@@ -1,17 +1,12 @@
 import { SerialPort } from 'serialport';
 import { DelimiterParser } from '@serialport/parser-delimiter';
+import { serialConfig } from './src/config/serial.config';
 import axios from 'axios';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const PORT = 8080;
 let port: SerialPort;
-
-const serialConfig = {
-    port: process.env.SERIAL_PORT || '/dev/ttyACM0',
-    baudRate: 115200,
-    password: 'RANDOM_GUID',
-};
 
 const waitForServer = async () => {
     let serverUp = false;
@@ -62,8 +57,8 @@ const handleChunk = async (data: string) => {
         console.log('Received:', line);
 
         if (!line.startsWith('MOIRE,')) return;
-        	console.log('MOIRE detected! Parts count:', line.split(',').length, 'Line:', line);
-        	const parts = line.split(',');
+        console.log('MOIRE detected! Parts count:', line.split(',').length, 'Line:', line);
+        const parts = line.split(',');
         if (parts.length !== 7) {
             console.log('Invalid MOIRE data:', line);
             return;
