@@ -10,7 +10,7 @@ let port: SerialPort;
 const serialConfig = {
     port: process.env.SERIAL_PORT || '/dev/ttyACM0',
     baudRate: 115200,
-    password: 'RANDOM_GUID'
+    password: 'RANDOM_GUID',
 };
 
 const waitForServer = async () => {
@@ -90,10 +90,10 @@ const handleChunk = async (data: string) => {
             sensors: [1, 2, 3, 0, 4],
             messages: [[temp, humidity, lux, pulse, battery]],
         };
-	console.log('BACKEND: Sending payload:', JSON.stringify(payload));
-	console.log('BACKEND: About to post...');
-	const response = await axios.post(`http://localhost:${PORT}/api/messages`, payload);
-	console.log('BACKEND: Response:', response.status, JSON.stringify(response.data));
+        console.log('BACKEND: Sending payload:', JSON.stringify(payload));
+        console.log('BACKEND: About to post...');
+        const response = await axios.post(`http://localhost:${PORT}/api/messages`, payload);
+        console.log('BACKEND: Response:', response.status, JSON.stringify(response.data));
 
     } catch (error) {
         console.log('Error handling chunk:', String(error));
