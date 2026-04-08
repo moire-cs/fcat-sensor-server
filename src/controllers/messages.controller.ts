@@ -172,11 +172,11 @@ export const createSerialMessage: RequestHandler = async (req, res) => {
     try {
         const mathParser = parser();
         const nodeID = nodeId.toString();
-        const Node = await nodesDB.findOne({ where: { id: nodeID } }).then((node) => node?.toJSON() as Node);
-        if (!Node){
-            res.status(400).json({ message: 'Node not found!' });
-            return;
-        }
+        const [nodeRecord] = await nodesDB.findOrCreate({
+            where: { id: nodeID },
+            defaults: { id: nodeID, plotID: null, lastSeen: null },
+        });
+        const Node = nodeRecord.toJSON() as Node;
         const plotID = Node.plotID;
         if (!plotID){
             res.status(400).json({ message: 'Node not assigned to a plot!' });
