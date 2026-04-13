@@ -8,8 +8,8 @@ const AUTH = authenticate;
 export const usePlotRoutes = (router:Express) => {
     router.get(URL_BASE, AUTH, plotsController.getPlots);
     router.get(URL_BASE + '/:id', AUTH, plotsController.getPlot);
-    router.post(URL_BASE + '/', AUTH, plotsController.createPlot);
-    router.patch(URL_BASE + '/updatePlot/:id', AUTH, plotsController.updatePlot);
+    router.post(URL_BASE + '/', plotsController.createPlot);
+    router.patch(URL_BASE + '/updatePlot/:id', plotsController.updatePlot);
     router.delete(URL_BASE + '/deletePlot/:id', AUTH, plotsController.deletePlot);
     router.get(URL_BASE + '/:nodeID', AUTH, plotsController.findPlotByNodeID);
 };

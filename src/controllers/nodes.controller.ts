@@ -88,10 +88,15 @@ export const updateNode: RequestHandler = async(req, res) => {
             res.status(400).json({ message: 'Node not found' });
             return;
         }
+        // Clear the old plot's nodeID if the node was previously assigned
+        if (node.plotID) {
+            await plotsDB.update({ nodeID: null }, { where: { id: node.plotID } });
+        }
         await nodesDB.update({
             ...updateNodeBody.node,
         }, { where: { id: id },
         });
+        // Set the new plot's nodeID if assigning to a plot
         if (updateNodeBody.node.plotID) {
             const plot = await plotsDB.findOne({ where: { id: updateNodeBody.node.plotID } }).then((plot) => {
                 const jsonPlot:Plot|undefined = plot?.toJSON();
