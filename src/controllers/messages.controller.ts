@@ -172,11 +172,11 @@ export const createSerialMessage: RequestHandler = async (req, res) => {
     try {
         const mathParser = parser();
         const nodeID = nodeId.toString();
-        const Node = await nodesDB.findOne({ where: { id: nodeID } }).then((node) => node?.toJSON() as Node);
-        if (!Node){
-            res.status(400).json({ message: 'Node not found!' });
-            return;
-        }
+        const [nodeRecord] = await nodesDB.findOrCreate({
+            where: { id: nodeID },
+            defaults: { id: nodeID, plotID: null, lastSeen: null },
+        });
+        const Node = nodeRecord.toJSON() as Node;
         const plotID = Node.plotID;
         if (!plotID){
             res.status(400).json({ message: 'Node not assigned to a plot!' });
@@ -206,42 +206,41 @@ export const createSerialMessage: RequestHandler = async (req, res) => {
         const measurementsArray = Array<Measurement>();
         messages.forEach((message, index) => {
             sensors.forEach((sensorID, sensorIndex) => {
-              const sensor = sensorsByIdMap[sensorID];
-              if (!sensor) return;
-          
-              const measurementData = message[sensorIndex];
-              if (measurementData === undefined) return;
-          
-              mathParser.set('x', measurementData);
-              const transformedData = mathParser.evaluate(sensor.transformEq);
-          
-              const measurementEntry: Measurement = {
-                id: v4(),
-                nodeID,
-                plotID,
-                time: new Date(times[index] * 1000),
-                type: 'MEASUREMENT',
-                data: transformedData.toString(),
-                sk: lastCreatedMessages[index].id,
-                sensorID: sensorID.toString(),
-              };
-          
-              measurementsArray.push(measurementEntry);
+                const sensor = sensorsByIdMap[sensorID];
+                if (!sensor) return;
+
+                const measurementData = message[sensorIndex];
+                if (measurementData === undefined) return;
+
+                mathParser.set('x', measurementData);
+                const transformedData = mathParser.evaluate(sensor.transformEq);
+
+                const measurementEntry: Measurement = {
+                    id: v4(),
+                    nodeID,
+                    plotID,
+                    time: new Date(times[index] * 1000),
+                    type: 'MEASUREMENT',
+                    data: transformedData.toString(),
+                    sk: lastCreatedMessages[index].id,
+                    sensorID: sensorID.toString(),
+                };
+
+                measurementsArray.push(measurementEntry);
             });
-          });
-          
-          
+        });
+
         if (measurementsArray.length > 0){
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await messagesDB.bulkCreate(measurementsArray as any);
         }
 
-        res.status(200).json({ 
+        res.status(200).json({
             message: 'Messages and Measurements created successfully!',
             messagesCreated: messagesArray.length,
-            measurementsCreated: measurementsArray.length
-          });
-          
+            measurementsCreated: measurementsArray.length,
+        });
+
     }
     catch (e){
         res.status(500).json({ message: e });
