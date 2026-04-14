@@ -1,5 +1,7 @@
+import 'dotenv/config';
 import express  from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { sequelize } from './src/models/db.index';
 import { useMessageRoutes } from './src/routes/messages.routes';
 import { useUserRoutes } from './src/routes/users.routes';
@@ -10,9 +12,10 @@ import { useNodeRoutes } from './src/routes/nodes.routes';
 const app = express();
 
 const corsOptions = {
-    origin: 'http://localhost:8081/',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:8081',
 };
 
+app.use(helmet());
 app.use(cors(corsOptions));
 
 app.use(express.json());

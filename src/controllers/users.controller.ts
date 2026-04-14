@@ -34,6 +34,7 @@ export const login = async (req: Express.Request, res: Express.Response) => {
         }
         const publicUser = omit(user, ['password']);
 
+        await sessionsDB.destroy({ where: { userID: publicUser.id } });
         const token = guid();
         const hashedToken = await bcrypt.hash(token, 10);
         await sessionsDB.create({ token: hashedToken, userID: publicUser.id, expires: Date.now() + EXPIRATION_TIME });
@@ -183,8 +184,10 @@ export const updateUser: RequestHandler = async(req, res) => {
             res.status(400).json({ message: 'User not found' });
             return;
         }
+        const { name, preferences } = updateUserBody.user;
         usersDB.update({
-            ...updateUserBody.user,
+            ...(name !== undefined && { name }),
+            ...(preferences !== undefined && { preferences }),
         }, { where: { id:id },
         });
         const updatedUser = await usersDB.findOne({ where:{ id:id }, attributes:{ exclude:['password'] } }).then((updatedUser) => updatedUser?.toJSON()) as Omit<User,'password'>;
