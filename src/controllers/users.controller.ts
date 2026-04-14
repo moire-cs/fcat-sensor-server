@@ -184,8 +184,10 @@ export const updateUser: RequestHandler = async(req, res) => {
             res.status(400).json({ message: 'User not found' });
             return;
         }
+        const { name, preferences } = updateUserBody.user;
         usersDB.update({
-            ...updateUserBody.user,
+            ...(name !== undefined && { name }),
+            ...(preferences !== undefined && { preferences }),
         }, { where: { id:id },
         });
         const updatedUser = await usersDB.findOne({ where:{ id:id }, attributes:{ exclude:['password'] } }).then((updatedUser) => updatedUser?.toJSON()) as Omit<User,'password'>;
