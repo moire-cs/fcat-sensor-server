@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { SerialPort } from 'serialport';
 import { DelimiterParser } from '@serialport/parser-delimiter';
 import { serialConfig } from './src/config/serial.config';
