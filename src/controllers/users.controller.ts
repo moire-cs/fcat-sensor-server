@@ -34,6 +34,7 @@ export const login = async (req: Express.Request, res: Express.Response) => {
         }
         const publicUser = omit(user, ['password']);
 
+        await sessionsDB.destroy({ where: { userID: publicUser.id } });
         const token = guid();
         const hashedToken = await bcrypt.hash(token, 10);
         await sessionsDB.create({ token: hashedToken, userID: publicUser.id, expires: Date.now() + EXPIRATION_TIME });
