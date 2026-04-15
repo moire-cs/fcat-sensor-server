@@ -2,10 +2,10 @@ import { Express } from 'express';
 import * as sensorsController from '../controllers/sensors.controller';
 import { authenticate } from '../controllers/users.controller';
 
-const URL_BASE = '/api/plots';
+const URL_BASE = '/api/sensors';
 const AUTH = authenticate;
 
-export const usePlotRoutes = (router:Express) => {
+export const useSensorRoutes = (router:Express) => {
     router.get(URL_BASE, AUTH, sensorsController.getSensors);
     router.get(URL_BASE + '/:id', AUTH, sensorsController.getSensor);
     router.post(URL_BASE + '/', AUTH, sensorsController.createSensor);

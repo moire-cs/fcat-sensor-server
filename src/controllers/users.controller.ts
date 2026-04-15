@@ -39,7 +39,7 @@ export const login = async (req: Express.Request, res: Express.Response) => {
         const hashedToken = await bcrypt.hash(token, 10);
         await sessionsDB.create({ token: hashedToken, userID: publicUser.id, expires: Date.now() + EXPIRATION_TIME });
 
-        res.json({ token, userId: publicUser.id });
+        res.json({ token, userId: publicUser.id, userType: publicUser.type });
     } catch (error) {
         res.status(500).json({ message: error });
     }

@@ -26,3 +26,4 @@ yarn-error.log*
 node_modules
 src/config/serial.config.ts
 nohup.out
+moiredb_dump.sql

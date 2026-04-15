@@ -8,6 +8,7 @@ import { useUserRoutes } from './src/routes/users.routes';
 import { useCycleRoutes } from './src/routes/cycle.routes';
 import { usePlotRoutes } from './src/routes/plots.routes'; //new
 import { useNodeRoutes } from './src/routes/nodes.routes';
+import { useSensorRoutes } from './src/routes/sensors.routes';
 
 const app = express();
 
@@ -46,6 +47,7 @@ useUserRoutes(app);
 useCycleRoutes(app);
 usePlotRoutes(app);
 useNodeRoutes(app);
+useSensorRoutes(app);
 
 const PORT = process.env.PORT || 8080;
 
