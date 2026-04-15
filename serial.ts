@@ -57,23 +57,21 @@ const handleChunk = async (data: string) => {
         const line = data.toString().replace(/\x1B\[[0-9;]*m/g, '').replace(/\r/g, '').trim();
         console.log('Received:', line);
 
-        if (!line.startsWith('MOIRE,')) return;
-        console.log('MOIRE detected! Parts count:', line.split(',').length, 'Line:', line);
-        const parts = line.split(',');
-        if (parts.length !== 7) {
-            console.log('Invalid MOIRE data:', line);
+        if (!line.startsWith('MESSAGE:')) return;
+
+        let parsed: { nodeId: string; sensors: string[]; messages: number[][] };
+        try {
+            parsed = JSON.parse(line.substring('MESSAGE:'.length));
+        } catch (e) {
+            console.log('Invalid JSON in MESSAGE:', line);
             return;
         }
 
-        const nodeId = parts[1];
-        const temp = parseFloat(parts[2]);
-        const humidity = parseFloat(parts[3]);
-        const lux = parseFloat(parts[4]);
-        const pulse = parseFloat(parts[5]);
-        const battery = parseFloat(parts[6]);
+        const { sensors, messages } = parsed;
+        const nodeId = parsed.nodeId.replace(/^0x/i, '');
 
-        if (isNaN(temp) || isNaN(humidity) || isNaN(lux) || isNaN(pulse) || isNaN(battery)) {
-            console.log('Invalid sensor values:', line);
+        if (!nodeId || !sensors?.length || !messages?.length) {
+            console.log('Missing required fields in MESSAGE:', line);
             return;
         }
 
@@ -82,9 +80,9 @@ const handleChunk = async (data: string) => {
         const payload = {
             password: serialConfig.password,
             nodeId: nodeId,
-            times: [now],
-            sensors: [1, 2, 3, 0, 4],
-            messages: [[temp, humidity, lux, pulse, battery]],
+            times: messages.map(() => now),
+            sensors: sensors.map(Number),
+            messages: messages,
         };
         console.log('BACKEND: Sending payload:', JSON.stringify(payload));
         console.log('BACKEND: About to post...');
