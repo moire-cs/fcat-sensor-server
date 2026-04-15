@@ -2,6 +2,7 @@ import { usersDB, sessionsDB } from '../models/db.index';
 import Express from 'express';
 import bcrypt from 'bcrypt';
 import { v4 as guid } from 'uuid';
+import { Op } from 'sequelize';
 import { EXPIRATION_TIME, Session } from '../models/sessions.model';
 import { RequestHandler } from 'express';
 import { User, UserType } from '../models/users.model';
@@ -34,7 +35,7 @@ export const login = async (req: Express.Request, res: Express.Response) => {
         }
         const publicUser = omit(user, ['password']);
 
-        await sessionsDB.destroy({ where: { userID: publicUser.id } });
+        await sessionsDB.destroy({ where: { userID: publicUser.id, expires: { [Op.lt]: Date.now() } } });
         const token = guid();
         const hashedToken = await bcrypt.hash(token, 10);
         await sessionsDB.create({ token: hashedToken, userID: publicUser.id, expires: Date.now() + EXPIRATION_TIME });
@@ -113,16 +114,22 @@ export const authenticate = async (req: Express.Request, res: Express.Response, 
         if (!user){
             return res.status(403).json({ message: 'Unauthorized' }); //Send user to login/register on the frontend
         }
-        const session = await sessionsDB.findOne({ where: { userID } }).then((session) => session?.toJSON()) as Session;
-        if (!session){
+        const sessions = await sessionsDB.findAll({ where: { userID } }).then((rows) => rows.map((r) => r.toJSON())) as Session[];
+        if (!sessions.length){
             return res.status(403).json({ message: 'Unauthorized' }); //Send user to login/register on the frontend
         }
-        if (session.expires.getTime() < Date.now()){
-            await sessionsDB.destroy({ where:{ id:session.id } });
-            return res.status(403).json({ message: 'Unauthorized' }); //Send user to login/register on the frontend
+        let matched = false;
+        for (const session of sessions) {
+            if (session.expires.getTime() < Date.now()) {
+                await sessionsDB.destroy({ where: { id: session.id } });
+                continue;
+            }
+            if (await bcrypt.compare(token, session.token)) {
+                matched = true;
+                break;
+            }
         }
-        const isMatch = await bcrypt.compare(token, session.token);
-        if (!isMatch) {
+        if (!matched) {
             return res.status(403).json({ message: 'Unauthorized' }); //Send user to login/register on the frontend
         }
         next();
