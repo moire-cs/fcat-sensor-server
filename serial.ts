@@ -31,7 +31,8 @@ const waitForServer = async () => {
     });
     const parser = port.pipe(new DelimiterParser({ delimiter: '\n' }));
     parser.on('data', (data) => {
-        handleChunk(data.toString());
+        const line = data.toString().replace(/\x1B\[[0-9;]*m/g, '').replace(/\r/g, '').trim();
+        if (line.startsWith('MESSAGE:')) handleChunk(line);
     });
     port.on('close', onclose);
 };
@@ -50,14 +51,9 @@ const onclose = () => {
     }, 5000);
 };
 
-// Parse: MOIRE,7962B275,22.62,68.40,30.07,10157,3.85
-// Format: MOIRE,ID,temp,humidity,lux,pulse,battery
-const handleChunk = async (data: string) => {
+const handleChunk = async (line: string) => {
     try {
-        const line = data.toString().replace(/\x1B\[[0-9;]*m/g, '').replace(/\r/g, '').trim();
-        console.log('Received:', line);
-
-        if (!line.startsWith('MESSAGE:')) return;
+        console.log('Processing MESSAGE:', line);
 
         let parsed: { nodeId: string; sensors: string[]; messages: number[][] };
         try {
