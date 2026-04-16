@@ -327,7 +327,7 @@ export const findMeasurementsByPlotID: RequestHandler = async (req, res) => {
             ...(start || end) && {
                 time: {
                     ...start && { [Op.gte]: new Date(start) },
-                    ...end && { [Op.lte]: new Date(end + 'T23:59:59.999Z') },
+                    ...end && { [Op.lte]: new Date(end) },
                 },
             },
         };
