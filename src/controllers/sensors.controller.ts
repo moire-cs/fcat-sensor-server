@@ -47,7 +47,7 @@ interface CreateSensorBody extends Sensor {
 export const createSensor: RequestHandler = async (req, res) => {
     try {
         const createSensorBody:CreateSensorBody = req.body;
-        if (createSensorBody.id && createSensorBody.name && createSensorBody.length && createSensorBody.transformEq) {
+        if (createSensorBody.id !== undefined && createSensorBody.id !== null && createSensorBody.name && createSensorBody.length !== undefined && createSensorBody.length !== null && createSensorBody.transformEq) {
             await sensorsDB.create({
                 ...createSensorBody,
             });
