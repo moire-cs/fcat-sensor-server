@@ -5,6 +5,7 @@ import { serialConfig } from '../config/serial.config';
 import { Node } from '../models/nodes.model';
 import { Sensor } from '../models/sensors.model';
 import { v4 } from 'uuid';
+import { Op } from 'sequelize';
 import { parser } from 'mathjs';
 
 export const getMessages: RequestHandler = async (req, res) => {
@@ -318,8 +319,21 @@ export const findMeasurementsByPlotID: RequestHandler = async (req, res) => {
         if (!plotID) {
             res.status(400).json({ message: 'Missing required fields!' });
         }
-        const measurement = await messagesDB.findAll({ where: { plotID: plotID, type: 'MEASUREMENT' } }).then((measurement) => measurement.map((measurement) => {
-            const jsonMeasurement:Measurement = measurement.toJSON();
+
+        const { start, end } = req.query as { start?: string; end?: string };
+        const where = {
+            plotID: plotID,
+            type: 'MEASUREMENT',
+            ...(start || end) && {
+                time: {
+                    ...start && { [Op.gte]: new Date(start) },
+                    ...end && { [Op.lte]: new Date(end) },
+                },
+            },
+        };
+
+        const measurement = await messagesDB.findAll({ where }).then((measurement) => measurement.map((measurement) => {
+            const jsonMeasurement: Measurement = measurement.toJSON();
             return jsonMeasurement;
         })) as Measurement[];
 
